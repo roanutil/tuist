@@ -110,6 +110,26 @@ final class SwiftPackageManagerControllerTests: TuistUnitTestCase {
         // Then
         XCTAssertEqual(packageInfo, PackageInfo.test)
     }
+    
+    func test_loadMyPackageInfo() throws {
+        let path = try temporaryPath()
+        system.succeedCommand(
+            [
+                "swift",
+                "package",
+                "--package-path",
+                path.pathString,
+                "dump-package",
+            ],
+            output: PackageInfo.testJSONMyPackage
+        )
+        
+        // When
+        let packageInfo = try subject.loadPackageInfo(at: path)
+
+        // Then
+        XCTAssertEqual(packageInfo, PackageInfo.testMyPackage)
+    }
 
     func test_loadPackageInfo_alamofire() throws {
         // Given

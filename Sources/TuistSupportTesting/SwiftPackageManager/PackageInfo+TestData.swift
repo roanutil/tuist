@@ -215,6 +215,14 @@ extension PackageInfo {
                   "value": [
                     "SWIFT_TVOS_DEFINE"
                   ]
+                },
+                {
+                  "kind" : {
+                    "enableUpcomingFeature" : {
+                      "_0" : "StrictConcurrency"
+                    }
+                  },
+                  "tool" : "swift"
                 }
               ],
               "type" : "regular"
@@ -494,6 +502,14 @@ extension PackageInfo {
                       "_0": "SWIFT_TVOS_DEFINE"
                     }
                   }
+                },
+                {
+                  "kind" : {
+                    "enableUpcomingFeature" : {
+                      "_0" : "StrictConcurrency"
+                    }
+                  },
+                  "tool" : "swift"
                 }
               ],
               "type" : "regular"
@@ -569,6 +585,111 @@ extension PackageInfo {
 
         """
     }
+    
+    public static var testJSONMyPackage: String {
+        """
+        {
+          "cLanguageStandard" : null,
+          "cxxLanguageStandard" : null,
+          "dependencies" : [
+
+          ],
+          "name" : "lib",
+          "packageKind" : {
+            "root" : [
+              "/Users/andrew/repos/tuist-test/lib"
+            ]
+          },
+          "pkgConfig" : null,
+          "platforms" : [
+
+          ],
+          "products" : [
+            {
+              "name" : "TuistTestCore",
+              "settings" : [
+
+              ],
+              "targets" : [
+                "TuistTestCore"
+              ],
+              "type" : {
+                "library" : [
+                  "automatic"
+                ]
+              }
+            }
+          ],
+          "providers" : null,
+          "swiftLanguageVersions" : null,
+          "targets" : [
+            {
+              "dependencies" : [
+
+              ],
+              "exclude" : [
+
+              ],
+              "name" : "TuistTestCore",
+              "packageAccess" : true,
+              "resources" : [
+
+              ],
+              "settings" : [
+                {
+                  "kind" : {
+                    "enableUpcomingFeature" : {
+                      "_0" : "StrictConcurrency"
+                    }
+                  },
+                  "tool" : "swift"
+                }
+              ],
+              "type" : "regular"
+            }
+          ],
+          "toolsVersion" : {
+            "_version" : "5.9.0"
+          }
+        }
+        """
+    }
+    
+    public static var testMyPackage: PackageInfo {
+        PackageInfo(
+            products: [
+                PackageInfo.Product(
+                    name: "TuistTestCore",
+                    type: .library(.automatic),
+                    targets: [
+                        "TuistTestCore",
+                    ]
+                )
+            ],
+            targets: [
+                PackageInfo.Target(
+                    name: "TuistTestCore",
+                    path: nil,
+                    url: nil,
+                    sources: nil,
+                    resources: [],
+                    exclude: [],
+                    dependencies: [],
+                    publicHeadersPath: nil,
+                    type: .regular,
+                    settings: [
+                        .init(tool: .swift, name: .enableUpcomingFeature, condition: nil, value: ["StrictConcurrency"]),
+                    ],
+                    checksum: nil,
+                    packageAccess: true
+                )
+            ],
+            platforms: [],
+            cLanguageStandard: nil,
+            cxxLanguageStandard: nil,
+            swiftLanguageVersions: nil
+        )
+    }
 
     public static var test: PackageInfo {
         .init(
@@ -625,6 +746,7 @@ extension PackageInfo {
                             condition: .init(platformNames: ["tvos"], config: nil),
                             value: ["SWIFT_TVOS_DEFINE"]
                         ),
+                        .init(tool: .swift, name: .enableUpcomingFeature, condition: nil, value: ["StrictConcurrency"])
                     ],
                     checksum: nil
                 ),
