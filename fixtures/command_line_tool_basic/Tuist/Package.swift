@@ -7,7 +7,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/apple/swift-system.git",
-            from: "1.3.0"
+            exact: "1.2.1"
         ),
     ]
 )
