@@ -142,8 +142,10 @@ struct SettingsMapper {
         settings.filter { setting in
             if let platformName, setting.hasConditions {
                 return setting.condition?.platformNames.contains(platformName) == true
-            } else {
+            } else if platformName == nil, let settingCondition = setting.condition, !settingCondition.platformNames.isEmpty {
                 return true
+            } else {
+                return !setting.hasConditions
             }
         }
     }
