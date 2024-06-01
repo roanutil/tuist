@@ -143,7 +143,7 @@ struct SettingsMapper {
             if let platformName, setting.hasConditions {
                 return setting.condition?.platformNames.contains(platformName) == true
             } else {
-                return !setting.hasConditions
+                return true
             }
         }
     }
