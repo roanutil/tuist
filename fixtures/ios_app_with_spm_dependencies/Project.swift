@@ -14,7 +14,8 @@ let project = Project(
             resources: "App/Resources/**",
             dependencies: [
                 .external(name: "ComposableArchitecture"),
-            ]
+            ],
+            settings: .settings(base: ["SWIFT_VERSION": "6"])
         ),
         .target(
             name: "AppTests",
@@ -24,7 +25,8 @@ let project = Project(
             deploymentTargets: .iOS("16.0"),
             infoPlist: .default,
             sources: "AppTests/**",
-            dependencies: [.target(name: "App")]
+            dependencies: [.target(name: "App")],
+            settings: .settings(base: ["SWIFT_VERSION": "6"])
         ),
     ]
 )
