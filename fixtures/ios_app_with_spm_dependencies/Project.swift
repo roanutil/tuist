@@ -13,11 +13,7 @@ let project = Project(
             sources: "App/Sources/**",
             resources: "App/Resources/**",
             dependencies: [
-                .external(name: "Buy"),
-                .external(name: "Pay"),
-                .external(name: "KSCrash"),
-                .external(name: "JWTKit"),
-                .sdk(name: "c++", type: .library, status: .required),
+                .external(name: "ComposableArchitecture"),
             ]
         ),
         .target(

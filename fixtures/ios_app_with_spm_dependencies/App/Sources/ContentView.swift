@@ -1,18 +1,9 @@
-import Buy
-import JWTKit
-import KSCrash_Installations
-import Pay
+import ComposableArchitecture
 import SwiftUI
 
 struct ContentView: View {
     init() {
-        // Use Mobile Buy SDK
-        _ = Card.CreditCard(firstName: "", lastName: "", number: "", expiryMonth: "", expiryYear: "")
-        _ = PayAddress()
-        // Use KSCrash
-        _ = KSCrashInstallationStandard()
-        // Use JWTKit
-        _ = JWTKit.ES256PrivateKey()
+        _ = Effect<Int>.none
     }
 
     var body: some View {
