@@ -1,4 +1,4 @@
-import Framework
+import Framework_A
 import UIKit
 
 @main

@@ -1,13 +1,13 @@
 import ProjectDescription
 
 let project = Project(
-    name: "Framework",
+    name: "Framework-A",
     targets: [
         .target(
-            name: "Framework",
+            name: "Framework-A",
             destinations: .iOS,
             product: .staticFramework,
-            bundleId: "io.tuist.framework",
+            bundleId: "io.tuist.framework-a",
             infoPlist: .default,
             sources: ["Sources/**"],
             coreDataModels: [

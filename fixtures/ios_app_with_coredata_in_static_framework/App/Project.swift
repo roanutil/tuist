@@ -11,7 +11,7 @@ let project = Project(
             infoPlist: "Config/App-Info.plist",
             sources: "Sources/**",
             dependencies: [
-                .project(target: "Framework", path: "../Framework"),
+                .project(target: "Framework-A", path: "../Framework-A"),
             ]
         ),
     ]
