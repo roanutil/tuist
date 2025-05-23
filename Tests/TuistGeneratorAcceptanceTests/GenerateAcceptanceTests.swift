@@ -1,5 +1,4 @@
 import Path
-import ServiceContextModule
 import TuistAcceptanceTesting
 import TuistSupport
 import TuistSupportTesting
@@ -421,7 +420,7 @@ final class GenerateAcceptanceTestiOSAppWithMultiConfigs: TuistAcceptanceTestCas
 
 final class GenerateAcceptanceTestiOSAppWithIncompatibleXcode: TuistAcceptanceTestCase {
     func test_ios_app_with_incompatible_xcode() async throws {
-        try await ServiceContext.withTestingDependencies {
+        try await withTestingDependencies {
             try await setUpFixture(.iosAppWithIncompatibleXcode)
             do {
                 try await run(GenerateCommand.self)
@@ -778,7 +777,7 @@ final class GenerateAcceptanceTestmacOSAppWithCopyFiles: TuistAcceptanceTestCase
 
 final class GenerateAcceptanceTestManifestWithLogs: TuistAcceptanceTestCase {
     func test_manifest_with_logs() async throws {
-        try await ServiceContext.withTestingDependencies {
+        try await withTestingDependencies {
             try await setUpFixture(.manifestWithLogs)
             try await run(GenerateCommand.self)
             XCTAssertStandardOutput(pattern: "Target name - App")
@@ -1273,6 +1272,31 @@ final class GenerateAcceptanceTestAppWithMacBundle: TuistAcceptanceTestCase {
             destination: "Debug",
             resource: "Resources/MacPlugin.bundle"
         )
+    }
+}
+
+final class GenerateAcceptanceTestAppWithSignedXCFrameworkDependencies: TuistAcceptanceTestCase {
+    func test_app_with_signed_xcframework_dependencies() async throws {
+        try await setUpFixture(.appWithSignedXCFrameworkDependencies)
+        try await run(GenerateCommand.self)
+    }
+
+    func test_app_with_mismatching_signed_xcframework_dependencies() async throws {
+        try await withTestingDependencies {
+            try await setUpFixture(.appWithSignedXCFrameworkDependenciesMismatchingSignature)
+            do {
+                try await run(GenerateCommand.self)
+                XCTFail("Generate should have failed")
+            } catch {
+                XCTAssertStandardError(
+                    pattern: "self signed XCFrameworks must have the format"
+                )
+                XCTAssertEqual(
+                    (error as? FatalError)?.description,
+                    "Fatal linting issues found"
+                )
+            }
+        }
     }
 }
 

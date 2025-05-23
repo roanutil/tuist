@@ -3,11 +3,10 @@ import Foundation
 import Noora
 import OpenAPIRuntime
 import Path
-import ServiceContextModule
 import TuistAnalytics
 import TuistCore
 import TuistLoader
-import TuistServer
+import TuistServerCore
 import TuistSupport
 
 public struct TuistCommand: AsyncParsableCommand {
@@ -28,6 +27,7 @@ public struct TuistCommand: AsyncParsableCommand {
                 CommandGroup(
                     name: "Develop",
                     subcommands: [
+                        HashCommand.self,
                         BuildCommand.self,
                         CacheCommand.self,
                         CleanCommand.self,
@@ -78,7 +78,9 @@ public struct TuistCommand: AsyncParsableCommand {
     ) async throws {
         let path: AbsolutePath
         if let argumentIndex = CommandLine.arguments.firstIndex(of: "--path") {
-            path = try AbsolutePath(validating: CommandLine.arguments[argumentIndex + 1], relativeTo: .current)
+            path = try AbsolutePath(
+                validating: CommandLine.arguments[argumentIndex + 1], relativeTo: .current
+            )
         } else {
             path = .current
         }
@@ -112,20 +114,29 @@ public struct TuistCommand: AsyncParsableCommand {
             let command = try parseAsRoot(processedArguments)
 
             if command is RecentPathRememberableCommand {
-                try await ServiceContext.current?.recentPaths?.remember(path: path)
+                try await RecentPathsStore.current.remember(path: path)
             }
 
             executeCommand = {
-                logFilePathDisplayStrategy = (command as? LogConfigurableCommand)?
-                    .logFilePathDisplayStrategy ?? logFilePathDisplayStrategy
+                logFilePathDisplayStrategy =
+                    (command as? LogConfigurableCommand)?
+                        .logFilePathDisplayStrategy ?? logFilePathDisplayStrategy
 
                 let trackableCommand = TrackableCommand(
                     command: command,
                     commandArguments: processedArguments
                 )
-                try await trackableCommand.run(
-                    backend: backend
-                )
+                if command is NooraReadyCommand {
+                    try await withLoggerForNoora(logFilePath: logFilePath) {
+                        try await trackableCommand.run(
+                            backend: backend
+                        )
+                    }
+                } else {
+                    try await trackableCommand.run(
+                        backend: backend
+                    )
+                }
             }
         } catch {
             parsingError = error
@@ -136,9 +147,14 @@ public struct TuistCommand: AsyncParsableCommand {
 
         do {
             try await executeCommand()
-            outputCompletion(logFilePath: logFilePath, shouldOutputLogFilePath: logFilePathDisplayStrategy == .always)
+            outputCompletion(
+                logFilePath: logFilePath,
+                shouldOutputLogFilePath: logFilePathDisplayStrategy == .always
+            )
         } catch {
-            onError(parsingError ?? error, isParsingError: parsingError != nil, logFilePath: logFilePath)
+            onError(
+                parsingError ?? error, isParsingError: parsingError != nil, logFilePath: logFilePath
+            )
         }
     }
 
@@ -155,10 +171,12 @@ public struct TuistCommand: AsyncParsableCommand {
             // Let argument parser handle the error
             exit(withError: error)
         } else if let clientError = error as? ClientError,
-                  let underlyingServerClientError = clientError.underlyingError as? ServerClientAuthenticationError
+                  let underlyingServerClientError = clientError.underlyingError
+                  as? ServerClientAuthenticationError
         {
-            // swiftlint:disable:next force_cast
-            errorAlertMessage = "\((clientError.underlyingError as! ServerClientAuthenticationError).description)"
+            errorAlertMessage =
+                // swiftlint:disable:next force_cast
+                "\((clientError.underlyingError as! ServerClientAuthenticationError).errorDescription ?? "Unknown error")"
         } else if let fatalError = error as? FatalError {
             let isSilent = fatalError.type == .abortSilent || fatalError.type == .bugSilent
             if !fatalError.description.isEmpty, !isSilent {
@@ -175,7 +193,8 @@ public struct TuistCommand: AsyncParsableCommand {
             // Let argument parser handle the error
             exit(withError: error)
         } else if let localizedError = error as? LocalizedError {
-            errorAlertMessage = "\(localizedError.errorDescription ?? localizedError.localizedDescription)"
+            errorAlertMessage =
+                "\(localizedError.errorDescription ?? localizedError.localizedDescription)"
         } else {
             errorAlertMessage = "\((error as CustomStringConvertible).description)"
         }
@@ -195,35 +214,37 @@ public struct TuistCommand: AsyncParsableCommand {
         errorAlertMessage: TerminalText? = nil,
         errorAlertNextSteps: [TerminalText]? = nil
     ) {
-        let errorAlert: ErrorAlert? = if let errorAlertMessage {
-            .alert(errorAlertMessage, nextSteps: errorAlertNextSteps ?? [])
-        } else {
-            nil
-        }
-        let successAlerts = ServiceContext.current?.alerts?.success() ?? []
-        let warningAlerts = ServiceContext.current?.alerts?.warnings() ?? []
+        let errorAlert: ErrorAlert? =
+            if let errorAlertMessage {
+                .alert(errorAlertMessage, takeaways: errorAlertNextSteps ?? [])
+            } else {
+                nil
+            }
+        let successAlerts = AlertController.current.success()
+        let warningAlerts = AlertController.current.warnings()
+        let takeaways = AlertController.current.takeaways()
 
         if !warningAlerts.isEmpty {
             print("\n")
-            for warningAlert in warningAlerts {
-                ServiceContext.current?.ui?.warning(warningAlert)
-            }
+            Noora.current.warning(warningAlerts)
         }
         let logsNextStep: TerminalText = "Check out the logs at \(logFilePath.pathString)"
 
         if let errorAlert {
             print("\n")
-            var errorAlertNextSteps = errorAlert.nextSteps
+            var errorAlertNextSteps = errorAlert.takeaways
             if shouldOutputLogFilePath {
                 errorAlertNextSteps.append(logsNextStep)
             }
-            ServiceContext.current?.ui?.error(.alert(errorAlert.message, nextSteps: errorAlertNextSteps))
+            Noora.current.error(.alert(errorAlert.message, takeaways: errorAlertNextSteps))
         } else if let successAlert = successAlerts.last {
-            var successAlertNextSteps = successAlert.nextSteps
+            var successAlertNextSteps = successAlert.takeaways
+            successAlertNextSteps.append(contentsOf: takeaways)
             if shouldOutputLogFilePath {
                 successAlertNextSteps.append(logsNextStep)
             }
-            ServiceContext.current?.ui?.success(.alert(successAlert.message, nextSteps: successAlertNextSteps))
+            print("\n")
+            Noora.current.success(.alert(successAlert.message, takeaways: successAlertNextSteps))
         }
     }
 

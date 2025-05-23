@@ -63,7 +63,11 @@ public struct CacheCommand: AsyncParsableCommand {
 
     public func run() async throws {
         if printHashes {
-            try await CachePrintHashesService(
+            AlertController.current.warning(.alert(
+                "The \(.command("tuist cache --print-hashes")) syntax is deprecated.",
+                takeaway: "Use \(.command("tuist hash cache")) instead."
+            ))
+            try await HashCacheCommandService(
                 generatorFactory: Self.generatorFactory
             ).run(
                 path: path,

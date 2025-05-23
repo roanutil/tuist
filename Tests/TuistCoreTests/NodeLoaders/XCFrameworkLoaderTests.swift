@@ -1,6 +1,7 @@
 import Mockable
 import TuistSupport
 import XcodeGraph
+import XcodeMetadata
 import XCTest
 
 @testable import TuistCore
@@ -48,7 +49,7 @@ final class XCFrameworkLoaderTests: TuistUnitTestCase {
 
         // Then
         await XCTAssertThrowsSpecific(
-            try await subject.load(path: xcframeworkPath, status: .required),
+            try await subject.load(path: xcframeworkPath, expectedSignature: nil, status: .required),
             XCFrameworkLoaderError.xcframeworkNotFound(xcframeworkPath)
         )
     }
@@ -63,8 +64,8 @@ final class XCFrameworkLoaderTests: TuistUnitTestCase {
         try FileHandler.shared.touch(xcframeworkPath)
 
         given(xcframeworkMetadataProvider)
-            .loadMetadata(at: .any, status: .any)
-            .willProduce { path, _ in
+            .loadMetadata(at: .any, expectedSignature: .any, status: .any)
+            .willProduce { path, _, _ in
                 XCFrameworkMetadata(
                     path: path,
                     infoPlist: infoPlist,
@@ -76,7 +77,7 @@ final class XCFrameworkLoaderTests: TuistUnitTestCase {
             }
 
         // When
-        let got = try await subject.load(path: xcframeworkPath, status: .required)
+        let got = try await subject.load(path: xcframeworkPath, expectedSignature: nil, status: .required)
 
         // Then
         XCTAssertEqual(
