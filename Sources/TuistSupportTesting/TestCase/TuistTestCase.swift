@@ -2,7 +2,6 @@ import Difference
 import FileSystem
 import Foundation
 import Path
-import ServiceContextModule
 import XCTest
 
 @testable import TuistSupport
@@ -107,19 +106,10 @@ public final class MockFileHandler: FileHandler {
 open class TuistTestCase: XCTestCase {
     fileprivate var temporaryDirectory: TemporaryDirectory!
 
-    public var environment: MockEnvironment!
     public var fileHandler: MockFileHandler!
 
     override open func setUp() {
         super.setUp()
-
-        do {
-            // Environment
-            environment = try MockEnvironment()
-            Environment._shared.mutate { $0 = environment }
-        } catch {
-            XCTFail("Failed to setup environment")
-        }
 
         // FileHandler
         fileHandler = MockFileHandler(temporaryDirectory: { try self.temporaryPath() })
@@ -213,14 +203,7 @@ open class TuistTestCase: XCTestCase {
         _ comparison: (Logger.Level, Logger.Level) -> Bool,
         file: StaticString = #file, line: UInt = #line
     ) {
-        guard let testingLogHandler = ServiceContext.current?.testingLogHandler else {
-            return XCTFail(
-                "The testing log handler hasn't been set with ServiceContext.withTestingDependencies.",
-                file: file,
-                line: line
-            )
-        }
-        let output = testingLogHandler.collected[level, comparison]
+        let output = Logger.testingLogHandler.collected[level, comparison]
 
         let message = """
         The output:
@@ -241,14 +224,7 @@ open class TuistTestCase: XCTestCase {
         _ comparison: (Logger.Level, Logger.Level) -> Bool,
         file: StaticString = #file, line: UInt = #line
     ) {
-        guard let testingLogHandler = ServiceContext.current?.testingLogHandler else {
-            return XCTFail(
-                "The testing log handler hasn't been set with ServiceContext.withTestingDependencies.",
-                file: file,
-                line: line
-            )
-        }
-        let output = testingLogHandler.collected[level, comparison]
+        let output = Logger.testingLogHandler.collected[level, comparison]
 
         let message = """
         The output:

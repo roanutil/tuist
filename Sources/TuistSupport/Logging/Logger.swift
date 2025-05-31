@@ -2,23 +2,11 @@ import FileLogging
 @_exported import Logging
 import LoggingOSLog
 import Path
-import ServiceContextModule
 
 import class Foundation.ProcessInfo
 
-private enum LoggerServiceContextKey: ServiceContextKey {
-    typealias Value = Logger
-}
-
-extension ServiceContext {
-    public var logger: Logger? {
-        get {
-            self[LoggerServiceContextKey.self]
-        }
-        set {
-            self[LoggerServiceContextKey.self] = newValue
-        }
-    }
+extension Logger {
+    @TaskLocal public static var current: Logger = .init(label: "dev.tuist.logger")
 }
 
 public struct LoggingConfig {
@@ -40,8 +28,19 @@ public struct LoggingConfig {
 }
 
 extension Logger {
+    public static func loggerHandlerForNoora(logFilePath: AbsolutePath) throws -> @Sendable (String) -> any LogHandler {
+        let fileLogger = try FileLogging(to: logFilePath.url)
+        return { label in
+            var fileLogHandler = FileLogHandler(label: label, fileLogger: fileLogger)
+            fileLogHandler.logLevel = .debug
+            var loggers: [any LogHandler] = [fileLogHandler]
+            loggers.append(OSLogHandler.verbose(label: label))
+            return MultiplexLogHandler(loggers)
+        }
+    }
+
     public static func defaultLoggerHandler(
-        config: LoggingConfig = .default,
+        config: LoggingConfig,
         logFilePath: AbsolutePath
     ) throws -> @Sendable (String) -> any LogHandler {
         let handler: VerboseLogHandler.Type
@@ -62,10 +61,9 @@ extension Logger {
         let fileLogger = try FileLogging(to: logFilePath.url)
 
         let baseLoggers = { (label: String) -> [any LogHandler] in
-            var loggers: [any LogHandler] = [
-                FileLogHandler(label: label, fileLogger: fileLogger),
-            ]
+            var fileLogHandler = FileLogHandler(label: label, fileLogger: fileLogger)
 
+            var loggers: [any LogHandler] = [fileLogHandler]
             // OSLog is not needed in development.
             // If we include it, the Xcode console will show duplicated logs, making it harder for contributors to debug the
             // execution
@@ -93,13 +91,13 @@ extension Logger {
 }
 
 extension LoggingConfig {
-    public static var `default`: LoggingConfig {
-        let env = ProcessInfo.processInfo.environment
+    public static func `default`() -> LoggingConfig {
+        let env = Environment.current.variables
 
         let quiet = env[Constants.EnvironmentVariables.quiet] != nil
         let osLog = env[Constants.EnvironmentVariables.osLog] != nil
         let detailed = env[Constants.EnvironmentVariables.detailedLog] != nil
-        let verbose = quiet ? false : env[Constants.EnvironmentVariables.verbose] != nil
+        let verbose = quiet ? false : Environment.current.isVerbose
 
         if quiet {
             return .init(loggerType: .quiet, verbose: verbose)

@@ -1,19 +1,14 @@
 import Foundation
 import HTTPTypes
 import OpenAPIRuntime
-import TuistSupport
+#if canImport(TuistSupport)
+    import TuistSupport
+#endif
 
-public enum ServerClientAuthenticationError: FatalError, Equatable {
+public enum ServerClientAuthenticationError: LocalizedError, Equatable {
     case notAuthenticated
 
-    public var type: ErrorType {
-        switch self {
-        case .notAuthenticated:
-            return .abort
-        }
-    }
-
-    public var description: String {
+    public var errorDescription: String? {
         switch self {
         case .notAuthenticated:
             return "You must be logged in to do this. To log in, run 'tuist auth login'."
@@ -26,18 +21,14 @@ struct ServerClientAuthenticationMiddleware: ClientMiddleware {
     private let serverAuthenticationController: ServerAuthenticationControlling
     private let serverCredentialsStore: ServerCredentialsStoring
     private let refreshAuthTokenService: RefreshAuthTokenServicing
-    private let dateService: DateServicing
     private let cachedValueStore: CachedValueStoring
-    private let envVariables: [String: String]
 
     init() {
         self.init(
             serverAuthenticationController: ServerAuthenticationController(),
             serverCredentialsStore: ServerCredentialsStore(),
             refreshAuthTokenService: RefreshAuthTokenService(),
-            dateService: DateService(),
-            cachedValueStore: CachedValueStore.shared,
-            envVariables: ProcessInfo.processInfo.environment
+            cachedValueStore: CachedValueStore.shared
         )
     }
 
@@ -45,16 +36,12 @@ struct ServerClientAuthenticationMiddleware: ClientMiddleware {
         serverAuthenticationController: ServerAuthenticationControlling,
         serverCredentialsStore: ServerCredentialsStoring,
         refreshAuthTokenService: RefreshAuthTokenServicing,
-        dateService: DateServicing,
         cachedValueStore: CachedValueStoring,
-        envVariables: [String: String]
     ) {
         self.serverAuthenticationController = serverAuthenticationController
         self.serverCredentialsStore = serverCredentialsStore
         self.refreshAuthTokenService = refreshAuthTokenService
-        self.dateService = dateService
         self.cachedValueStore = cachedValueStore
-        self.envVariables = envVariables
     }
 
     func intercept(
@@ -66,10 +53,12 @@ struct ServerClientAuthenticationMiddleware: ClientMiddleware {
     ) async throws -> (HTTPResponse, HTTPBody?) {
         var request = request
 
-        /// Cirrus environments don't require authentication so we skip in these cases
-        if envVariables[Constants.EnvironmentVariables.cirrusTuistCacheURL] != nil {
-            return try await next(request, body, baseURL)
-        }
+        #if canImport(TuistSupport)
+            /// Cirrus environments don't require authentication so we skip in these cases
+            if Environment.current.variables["CIRRUS_TUIST_CACHE_URL"] != nil {
+                return try await next(request, body, baseURL)
+            }
+        #endif
 
         guard let token = try await serverAuthenticationController.authenticationToken(serverURL: baseURL)
         else {
@@ -83,12 +72,13 @@ struct ServerClientAuthenticationMiddleware: ClientMiddleware {
         case let .user(legacyToken: legacyToken, accessToken: accessToken, refreshToken: refreshToken):
             if let legacyToken {
                 tokenValue = legacyToken
-            } else if let accessToken, let refreshToken {
+            } else if let accessToken {
                 // We consider a token to be expired if the expiration date is in the past or 30 seconds from now
                 let isExpired = accessToken.expiryDate
-                    .timeIntervalSince(dateService.now()) < 30
+                    .timeIntervalSince(Date.now()) < 30
 
                 if isExpired {
+                    guard let refreshToken else { throw ServerClientAuthenticationError.notAuthenticated }
                     tokenValue = try await cachedValueStore.getValue(key: refreshToken.token) {
                         try await refreshTokens(baseURL: baseURL, refreshToken: refreshToken)
                     }

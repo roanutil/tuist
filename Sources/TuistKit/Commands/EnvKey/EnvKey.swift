@@ -96,6 +96,11 @@ public enum EnvKey: String, CaseIterable {
     // BUILD
     case inspectBuildPath = "TUIST_INSPECT_BUILD_PATH"
 
+    // BUNDLE
+    case inspectBundle = "TUIST_INSPECT_BUNDLE"
+    case inspectBundleJSON = "TUIST_INSPECT_BUNDLE_JSON"
+    case inspectBundlePath = "TUIST_INSPECT_BUNDLE_PATH"
+
     // RUN
     case runBuildTests = "TUIST_RUN_BUILD_TESTS"
     case runSkipBuild = "TUIST_RUN_SKIP_BUILD"
@@ -253,11 +258,19 @@ public enum EnvKey: String, CaseIterable {
     case cacheConfiguration = "TUIST_CACHE_CONFIGURATION"
     case cachePath = "TUIST_CACHE_PATH"
     case cacheTargets = "TUIST_CACHE_TARGETS"
+
+    // HASH CACHE
+    case hashCachePath = "TUIST_HASH_CACHE_PATH"
+    case hashCacheConfiguration = "TUIST_HASH_CACHE_CONFIGURATION"
+
+    // HASH TEST
+    case hashTestPath = "TUIST_HASH_TEST_PATH"
+    case hashTestConfiguration = "TUIST_HASH_TEST_CONFIGURATION"
 }
 
 extension EnvKey {
     var envValueString: String? {
-        Environment.shared.tuistVariables[rawValue]
+        Environment.current.tuistVariables[rawValue]
     }
 
     func envValue<T: ExpressibleByArgument>() -> T? {

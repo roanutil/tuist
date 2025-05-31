@@ -1,32 +1,33 @@
 import Foundation
 import Mockable
 import Path
-import ServiceContextModule
+import Testing
 import TuistCache
 import TuistCore
 import TuistLoader
 import TuistServer
 import TuistSupport
 import XcodeProj
-import XCTest
+
 @testable import TuistCoreTesting
 @testable import TuistKit
 @testable import TuistLoaderTesting
 @testable import TuistSupportTesting
 
-final class GenerateServiceTests: TuistUnitTestCase {
+struct GenerateServiceTests {
     private var subject: GenerateService!
     private var opener: MockOpening!
     private var generator: MockGenerating!
     private var generatorFactory: MockGeneratorFactorying!
     private var cacheStorageFactory: MockCacheStorageFactorying!
     private var clock: StubClock!
+    private var configLoader: MockConfigLoading!
 
-    override func setUp() {
-        super.setUp()
+    init() {
         opener = .init()
         generator = .init()
         generatorFactory = .init()
+        configLoader = .init()
         given(generatorFactory)
             .generation(
                 config: .any,
@@ -45,47 +46,67 @@ final class GenerateServiceTests: TuistUnitTestCase {
             cacheStorageFactory: cacheStorageFactory,
             generatorFactory: generatorFactory,
             clock: clock,
-            opener: opener
+            opener: opener,
+            configLoader: configLoader
         )
     }
 
-    override func tearDown() {
-        opener = nil
-        generator = nil
-        generatorFactory = nil
-        cacheStorageFactory = nil
-        clock = nil
-        subject = nil
-        super.tearDown()
+    @Test func test_throws_when_the_configuration_is_not_for_a_generated_project() async throws {
+        given(configLoader).loadConfig(path: .any).willReturn(.test(project: .testXcodeProject()))
+
+        await #expect(
+            throws:
+            TuistConfigError
+                .notAGeneratedProjectNorSwiftPackage(
+                    errorMessageOverride:
+                    "The 'tuist generate' command is only available for generated projects and Swift packages."
+                ),
+            performing: {
+                try await subject
+                    .run(
+                        path: nil,
+                        includedTargets: [],
+                        noOpen: true,
+                        configuration: nil,
+                        ignoreBinaryCache: false
+                    )
+            }
+        )
     }
 
-    func test_run_fatalErrors_when_theworkspaceGenerationFails() async throws {
+    @Test func test_run_fatalErrors_when_theworkspaceGenerationFails() async throws {
         let expectedError = NSError.test()
+        given(configLoader).loadConfig(path: .any).willReturn(
+            .test(project: .testGeneratedProject())
+        )
         given(generator)
-            .generateWithGraph(path: .any)
+            .generateWithGraph(path: .any, options: .any)
             .willThrow(expectedError)
 
-        do {
-            try await subject
-                .run(
-                    path: nil,
-                    includedTargets: [],
-                    noOpen: true,
-                    configuration: nil,
-                    ignoreBinaryCache: false
-                )
-            XCTFail("Must throw")
-        } catch {
-            XCTAssertEqual(error as NSError?, expectedError)
-        }
+        await #expect(
+            throws: Error.self,
+            performing: {
+                try await subject
+                    .run(
+                        path: nil,
+                        includedTargets: [],
+                        noOpen: true,
+                        configuration: nil,
+                        ignoreBinaryCache: false
+                    )
+            }
+        )
     }
 
-    func test_run() async throws {
+    @Test func test_run() async throws {
         // Given
         let workspacePath = try AbsolutePath(validating: "/test.xcworkspace")
         let environment = MapperEnvironment()
+        given(configLoader).loadConfig(path: .any).willReturn(
+            .test(project: .testGeneratedProject())
+        )
         given(generator)
-            .generateWithGraph(path: .any)
+            .generateWithGraph(path: .any, options: .any)
             .willReturn(
                 (
                     workspacePath,
@@ -113,17 +134,21 @@ final class GenerateServiceTests: TuistUnitTestCase {
             .called(1)
     }
 
-    func test_run_timeIsPrinted() async throws {
-        try await ServiceContext.withTestingDependencies {
+    @Test func test_run_timeIsPrinted() async throws {
+        try await withMockedDependencies {
             // Given
             let workspacePath = try AbsolutePath(validating: "/test.xcworkspace")
+
+            given(configLoader).loadConfig(path: .any).willReturn(
+                .test(project: .testGeneratedProject())
+            )
 
             given(opener)
                 .open(path: .any)
                 .willReturn()
 
             given(generator)
-                .generateWithGraph(path: .any)
+                .generateWithGraph(path: .any, options: .any)
                 .willReturn((workspacePath, .test(), MapperEnvironment()))
             clock.assertOnUnexpectedCalls = true
             clock.primedTimers = [
@@ -140,7 +165,7 @@ final class GenerateServiceTests: TuistUnitTestCase {
             )
 
             // Then
-            XCTAssertPrinterOutputContains("Total time taken: 0.234s")
+            try TuistTest.expectLogs("Total time taken: 0.234s")
         }
     }
 }

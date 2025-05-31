@@ -1,6 +1,5 @@
 import Foundation
 import Path
-import ServiceContextModule
 import TuistCore
 import TuistSupport
 import XcodeGraph
@@ -16,7 +15,7 @@ public class ResourcesProjectMapper: ProjectMapping { // swiftlint:disable:this 
         guard !project.options.disableBundleAccessors else {
             return (project, [])
         }
-        ServiceContext.current?.logger?.debug("Transforming project \(project.name): Generating bundles for libraries'")
+        Logger.current.debug("Transforming project \(project.name): Generating bundles for libraries'")
 
         var sideEffects: [SideEffectDescriptor] = []
         var targets: [String: Target] = [:]
@@ -197,7 +196,11 @@ public class ResourcesProjectMapper: ProjectMapping { // swiftlint:disable:this 
         // swiftlint:disable all
         // swift-format-ignore-file
         // swiftformat:disable all
+        #if hasFeature(InternalImportsByDefault)
+        public import Foundation
+        #else
         import Foundation
+        #endif
         \(bundleAccessor)
         \(publicBundleAccessor)
         // swiftformat:enable all

@@ -1,18 +1,18 @@
 import ProjectDescription
 
-func tuistAppDependencies() -> [TargetDependency] {
+func tuistMenuBarDependencies() -> [TargetDependency] {
     [
-        .external(name: "Path"),
-        .project(target: "TuistSupport", path: "../"),
-        .project(target: "TuistCore", path: "../"),
-        .project(target: "TuistServer", path: "../"),
-        .project(target: "TuistAutomation", path: "../"),
-        .external(name: "XcodeGraph"),
-        .external(name: "Command"),
-        .external(name: "Sparkle"),
-        .external(name: "FileSystem"),
-        .external(name: "Mockable"),
-        .external(name: "Collections"),
+        .external(name: "Path", condition: .when([.macos])),
+        .project(target: "TuistSupport", path: "../", condition: .when([.macos])),
+        .project(target: "TuistCore", path: "../", condition: .when([.macos])),
+        .project(target: "TuistServer", path: "../", condition: .when([.macos])),
+        .project(target: "TuistAutomation", path: "../", condition: .when([.macos])),
+        .external(name: "XcodeGraph", condition: .when([.macos])),
+        .external(name: "Command", condition: .when([.macos])),
+        .external(name: "Sparkle", condition: .when([.macos])),
+        .external(name: "FileSystem", condition: .when([.macos])),
+        .external(name: "Mockable", condition: .when([.macos])),
+        .external(name: "Collections", condition: .when([.macos])),
         .external(name: "OpenAPIRuntime"),
     ]
 }
@@ -27,7 +27,7 @@ let project = Project(
     targets: [
         .target(
             name: "TuistApp",
-            destinations: .macOS,
+            destinations: [.mac, .iPhone],
             product: .app,
             bundleId: "io.tuist.app",
             deploymentTargets: .macOS("14.0.0"),
@@ -50,11 +50,18 @@ let project = Project(
                         "https://raw.githubusercontent.com/tuist/tuist/main/app/appcast.xml",
                     "CFBundleShortVersionString": "0.9.0",
                     "CFBundleVersion": "0.9.0",
+                    "UILaunchScreen": [
+                        "UIColorName": "",
+                        "UIImageName": "",
+                    ],
                 ]
             ),
-            sources: ["TuistApp/Sources/**"],
-            resources: ["TuistApp/Resources/**"],
-            dependencies: tuistAppDependencies(),
+            sources: ["Sources/TuistApp/**"],
+            resources: ["Resources/TuistApp/**"],
+            dependencies: [
+                .target(name: "TuistMenuBar", condition: .when([.macos])),
+                .target(name: "TuistPreviews", condition: .when([.ios])),
+            ],
             settings: .settings(
                 base: [
                     "DEVELOPMENT_TEAM": "U6LC622NKF",
@@ -69,19 +76,41 @@ let project = Project(
                     "OTHER_CODE_SIGN_FLAGS": "--timestamp --deep",
                     "ENABLE_HARDENED_RUNTIME": true,
                     "PRODUCT_NAME": "Tuist",
+                    "PROVISIONING_PROFILE_SPECIFIER": "Tuist Ad hoc",
                 ]
             )
         ),
         .target(
-            name: "TuistAppTests",
+            name: "TuistPreviews",
+            destinations: .iOS,
+            product: .staticFramework,
+            bundleId: "io.tuist.previews",
+            deploymentTargets: .iOS("18.0"),
+            sources: ["Sources/TuistPreviews/**"],
+            dependencies: [
+                .project(target: "TuistServer", path: "../"),
+            ]
+        ),
+        .target(
+            name: "TuistMenuBar",
+            destinations: .macOS,
+            product: .staticFramework,
+            bundleId: "io.tuist.menu-bar",
+            deploymentTargets: .macOS("14.0.0"),
+            sources: ["Sources/TuistMenuBar/**"],
+            resources: ["Resources/TuistMenuBar/**"],
+            dependencies: tuistMenuBarDependencies()
+        ),
+        .target(
+            name: "TuistMenuBarTests",
             destinations: .macOS,
             product: .unitTests,
             bundleId: "io.tuist.TuistAppTests",
             deploymentTargets: .macOS("14.0.0"),
             infoPlist: .default,
-            sources: ["TuistApp/Tests/**"],
+            sources: ["Tests/TuistMenuBarTests/**"],
             resources: [],
-            dependencies: tuistAppDependencies() + [
+            dependencies: tuistMenuBarDependencies() + [
                 .target(name: "TuistApp"),
                 .project(target: "TuistSupportTesting", path: "../"),
             ]

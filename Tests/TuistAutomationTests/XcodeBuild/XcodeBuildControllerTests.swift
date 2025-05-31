@@ -1,9 +1,12 @@
 import Command
+import FileSystem
+import FileSystemTesting
 import Foundation
+import Mockable
+import Testing
 import TSCBasic
 import TuistCore
 import TuistSupport
-import XCTest
 
 @testable import TuistAutomation
 @testable import TuistSupportTesting
@@ -14,33 +17,27 @@ final class MockFormatter: Formatting {
     }
 }
 
-final class XcodeBuildControllerTests: TuistUnitTestCase {
+struct XcodeBuildControllerTests {
     var subject: XcodeBuildController!
-    var formatter: Formatting!
-    var commandRunner: MockCommandRunning!
+    var formatter = MockFormatter()
+    var system = MockSystem()
+    var commandRunner = MockCommandRunning()
 
-    override func setUp() {
-        super.setUp()
-        formatter = MockFormatter()
-        commandRunner = MockCommandRunning()
+    init() {
         subject = XcodeBuildController(
             formatter: formatter,
-            environment: environment,
-            commandRunner: commandRunner
+            commandRunner: commandRunner,
+            system: system
         )
     }
 
-    override func tearDown() {
-        subject = nil
-        formatter = nil
-        commandRunner = nil
-        super.tearDown()
-    }
-
+    @Test(.inTemporaryDirectory, .withMockedEnvironment(), .withMockedDeveloperEnvironment)
     func test_build_without_device_id() async throws {
         // Given
-        let path = try temporaryPath()
-        let xcworkspacePath = path.appending(component: "Project.xcworkspace")
+        let temporaryDirectory = try #require(FileSystem.temporaryTestDirectory)
+        let environment = try #require(Environment.mocked)
+
+        let xcworkspacePath = temporaryDirectory.appending(component: "Project.xcworkspace")
         let target = XcodeBuildTarget.workspace(xcworkspacePath)
         let scheme = "Scheme"
         let shouldOutputBeColoured = true
@@ -63,10 +60,12 @@ final class XcodeBuildControllerTests: TuistUnitTestCase {
         )
     }
 
+    @Test(.inTemporaryDirectory, .withMockedEnvironment(), .withMockedDeveloperEnvironment)
     func test_build_without_device_id_but_arch() async throws {
         // Given
-        let path = try temporaryPath()
-        let xcworkspacePath = path.appending(component: "Project.xcworkspace")
+        let temporaryDirectory = try #require(FileSystem.temporaryTestDirectory)
+        let environment = try #require(Environment.mocked)
+        let xcworkspacePath = temporaryDirectory.appending(component: "Project.xcworkspace")
         let target = XcodeBuildTarget.workspace(xcworkspacePath)
         let scheme = "Scheme"
         let shouldOutputBeColoured = true
@@ -89,10 +88,12 @@ final class XcodeBuildControllerTests: TuistUnitTestCase {
         )
     }
 
+    @Test(.inTemporaryDirectory, .withMockedEnvironment(), .withMockedDeveloperEnvironment)
     func test_build_with_device_id() async throws {
         // Given
-        let path = try temporaryPath()
-        let xcworkspacePath = path.appending(component: "Project.xcworkspace")
+        let temporaryDirectory = try #require(FileSystem.temporaryTestDirectory)
+        let environment = try #require(Environment.mocked)
+        let xcworkspacePath = temporaryDirectory.appending(component: "Project.xcworkspace")
         let target = XcodeBuildTarget.workspace(xcworkspacePath)
         let scheme = "Scheme"
         let shouldOutputBeColoured = true
@@ -116,10 +117,12 @@ final class XcodeBuildControllerTests: TuistUnitTestCase {
         )
     }
 
+    @Test(.inTemporaryDirectory, .withMockedEnvironment(), .withMockedDeveloperEnvironment)
     func test_build_with_device_id_and_arch() async throws {
         // Given
-        let path = try temporaryPath()
-        let xcworkspacePath = path.appending(component: "Project.xcworkspace")
+        let temporaryDirectory = try #require(FileSystem.temporaryTestDirectory)
+        let environment = try #require(Environment.mocked)
+        let xcworkspacePath = temporaryDirectory.appending(component: "Project.xcworkspace")
         let target = XcodeBuildTarget.workspace(xcworkspacePath)
         let scheme = "Scheme"
         let shouldOutputBeColoured = true
@@ -143,10 +146,12 @@ final class XcodeBuildControllerTests: TuistUnitTestCase {
         )
     }
 
+    @Test(.inTemporaryDirectory, .withMockedEnvironment(), .withMockedDeveloperEnvironment)
     func test_test_when_device() async throws {
         // Given
-        let path = try temporaryPath()
-        let xcworkspacePath = path.appending(component: "Project.xcworkspace")
+        let temporaryDirectory = try #require(FileSystem.temporaryTestDirectory)
+        let environment = try #require(Environment.mocked)
+        let xcworkspacePath = temporaryDirectory.appending(component: "Project.xcworkspace")
         let target = XcodeBuildTarget.workspace(xcworkspacePath)
         let scheme = "Scheme"
         let shouldOutputBeColoured = true
@@ -183,10 +188,12 @@ final class XcodeBuildControllerTests: TuistUnitTestCase {
         )
     }
 
+    @Test(.inTemporaryDirectory, .withMockedEnvironment(), .withMockedDeveloperEnvironment)
     func test_test_when_device_arch() async throws {
         // Given
-        let path = try temporaryPath()
-        let xcworkspacePath = path.appending(component: "Project.xcworkspace")
+        let temporaryDirectory = try #require(FileSystem.temporaryTestDirectory)
+        let environment = try #require(Environment.mocked)
+        let xcworkspacePath = temporaryDirectory.appending(component: "Project.xcworkspace")
         let target = XcodeBuildTarget.workspace(xcworkspacePath)
         let scheme = "Scheme"
         let shouldOutputBeColoured = true
@@ -223,10 +230,14 @@ final class XcodeBuildControllerTests: TuistUnitTestCase {
         )
     }
 
+    @Test(.inTemporaryDirectory, .withMockedDeveloperEnvironment, .withMockedEnvironment())
     func test_test_when_mac() async throws {
         // Given
-        let path = try temporaryPath()
-        let xcworkspacePath = path.appending(component: "Project.xcworkspace")
+        let temporaryDirectory = try #require(FileSystem.temporaryTestDirectory)
+        let environment = try #require(Environment.mocked)
+        let developerEnvironment = try #require(DeveloperEnvironment.mocked)
+
+        let xcworkspacePath = temporaryDirectory.appending(component: "Project.xcworkspace")
         let target = XcodeBuildTarget.workspace(xcworkspacePath)
         let scheme = "Scheme"
         let shouldOutputBeColoured = true
@@ -265,10 +276,12 @@ final class XcodeBuildControllerTests: TuistUnitTestCase {
         )
     }
 
+    @Test(.inTemporaryDirectory, .withMockedDeveloperEnvironment, .withMockedEnvironment())
     func test_test_when_destination_is_specified_with_passthrough_arguments() async throws {
         // Given
-        let path = try temporaryPath()
-        let xcworkspacePath = path.appending(component: "Project.xcworkspace")
+        let temporaryDirectory = try #require(FileSystem.temporaryTestDirectory)
+        let environment = try #require(Environment.mocked)
+        let xcworkspacePath = temporaryDirectory.appending(component: "Project.xcworkspace")
         let target = XcodeBuildTarget.workspace(xcworkspacePath)
         let scheme = "Scheme"
         let shouldOutputBeColoured = true
@@ -308,13 +321,16 @@ final class XcodeBuildControllerTests: TuistUnitTestCase {
         )
     }
 
+    @Test(.inTemporaryDirectory, .withMockedEnvironment(), .withMockedDeveloperEnvironment)
     func test_test_with_derived_data() async throws {
         // Given
-        let path = try temporaryPath()
-        let xcworkspacePath = path.appending(component: "Project.xcworkspace")
+        let temporaryDirectory = try #require(FileSystem.temporaryTestDirectory)
+        let developerEnvironment = try #require(DeveloperEnvironment.mocked)
+
+        let xcworkspacePath = temporaryDirectory.appending(component: "Project.xcworkspace")
         let target = XcodeBuildTarget.workspace(xcworkspacePath)
         let scheme = "Scheme"
-        let derivedDataPath = try temporaryPath()
+        let derivedDataPath = temporaryDirectory
 
         var command = [
             "/usr/bin/xcrun",
@@ -350,13 +366,16 @@ final class XcodeBuildControllerTests: TuistUnitTestCase {
         )
     }
 
+    @Test(.inTemporaryDirectory, .withMockedEnvironment(), .withMockedDeveloperEnvironment)
     func test_test_with_result_bundle_path() async throws {
         // Given
-        let path = try temporaryPath()
-        let xcworkspacePath = path.appending(component: "Project.xcworkspace")
+        let temporaryDirectory = try #require(FileSystem.temporaryTestDirectory)
+        let xcworkspacePath = temporaryDirectory.appending(component: "Project.xcworkspace")
+        let developerEnvironment = try #require(DeveloperEnvironment.mocked)
+
         let target = XcodeBuildTarget.workspace(xcworkspacePath)
         let scheme = "Scheme"
-        let resultBundlePath = try temporaryPath()
+        let resultBundlePath = temporaryDirectory
 
         var command = [
             "/usr/bin/xcrun",
@@ -392,10 +411,11 @@ final class XcodeBuildControllerTests: TuistUnitTestCase {
         )
     }
 
+    @Test(.inTemporaryDirectory, .withMockedEnvironment(), .withMockedDeveloperEnvironment)
     func test_test_build_only() async throws {
         // Given
-        let path = try temporaryPath()
-        let xcworkspacePath = path.appending(component: "Project.xcworkspace")
+        let temporaryDirectory = try #require(FileSystem.temporaryTestDirectory)
+        let xcworkspacePath = temporaryDirectory.appending(component: "Project.xcworkspace")
         let target = XcodeBuildTarget.workspace(xcworkspacePath)
         let scheme = "Scheme"
 
@@ -430,10 +450,11 @@ final class XcodeBuildControllerTests: TuistUnitTestCase {
         )
     }
 
+    @Test(.inTemporaryDirectory, .withMockedEnvironment(), .withMockedDeveloperEnvironment)
     func test_test_only() async throws {
         // Given
-        let path = try temporaryPath()
-        let xcworkspacePath = path.appending(component: "Project.xcworkspace")
+        let temporaryDirectory = try #require(FileSystem.temporaryTestDirectory)
+        let xcworkspacePath = temporaryDirectory.appending(component: "Project.xcworkspace")
         let target = XcodeBuildTarget.workspace(xcworkspacePath)
         let scheme = "Scheme"
 

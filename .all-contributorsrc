@@ -1807,6 +1807,24 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "chrisjrex",
+      "name": "Christopher Rex",
+      "avatar_url": "https://avatars.githubusercontent.com/u/4457170?v=4",
+      "profile": "https://github.com/chrisjrex",
+      "contributions": [
+        "code"
+      ]
+    },
+    {
+      "login": "bahattinkoc",
+      "name": "baaddin",
+      "avatar_url": "https://avatars.githubusercontent.com/u/61124759?v=4",
+      "profile": "https://github.com/bahattinkoc",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
