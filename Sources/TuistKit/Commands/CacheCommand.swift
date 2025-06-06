@@ -6,9 +6,6 @@ import TuistSupport
 public struct CacheCommand: AsyncParsableCommand {
     public init() {}
 
-    public static var generatorFactory: GeneratorFactorying = GeneratorFactory()
-    public static var cacheService: CacheServicing = EmptyCacheService()
-
     public static var configuration: CommandConfiguration {
         CommandConfiguration(
             commandName: "cache",
@@ -63,8 +60,12 @@ public struct CacheCommand: AsyncParsableCommand {
 
     public func run() async throws {
         if printHashes {
-            try await CachePrintHashesService(
-                generatorFactory: Self.generatorFactory
+            AlertController.current.warning(.alert(
+                "The \(.command("tuist cache --print-hashes")) syntax is deprecated.",
+                takeaway: "Use \(.command("tuist hash cache")) instead."
+            ))
+            try await HashCacheCommandService(
+                generatorFactory: Extension.generatorFactory
             ).run(
                 path: path,
                 configuration: configuration
@@ -72,7 +73,7 @@ public struct CacheCommand: AsyncParsableCommand {
             return
         }
 
-        try await Self.cacheService.run(
+        try await Extension.cacheService.run(
             path: path,
             configuration: configuration,
             targetsToBinaryCache: Set(targets),

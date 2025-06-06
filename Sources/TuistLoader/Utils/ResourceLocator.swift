@@ -65,7 +65,7 @@ public final class ResourceLocator: ResourceLocating {
                 */
             bundlePath.parentDirectory.appending(component: "lib"),
         ]
-        if let frameworkSearchPaths = ProcessInfo.processInfo.environment["TUIST_FRAMEWORK_SEARCH_PATHS"]?
+        if let frameworkSearchPaths = Environment.current.variables["TUIST_FRAMEWORK_SEARCH_PATHS"]?
             .components(separatedBy: " ")
             .filter({ !$0.isEmpty })
         {
@@ -92,3 +92,31 @@ public final class ResourceLocator: ResourceLocating {
         return path
     }
 }
+
+#if DEBUG
+    public final class MockResourceLocator: ResourceLocating {
+        public var projectDescriptionCount: UInt = 0
+        public var projectDescriptionStub: (() throws -> AbsolutePath)?
+        public var cliPathCount: UInt = 0
+        public var cliPathStub: (() throws -> AbsolutePath)?
+        public var embedPathCount: UInt = 0
+        public var embedPathStub: (() throws -> AbsolutePath)?
+
+        public init() {}
+
+        public func projectDescription() throws -> AbsolutePath {
+            projectDescriptionCount += 1
+            return try projectDescriptionStub?() ?? AbsolutePath(validating: "/")
+        }
+
+        public func cliPath() throws -> AbsolutePath {
+            cliPathCount += 1
+            return try cliPathStub?() ?? AbsolutePath(validating: "/")
+        }
+
+        public func embedPath() throws -> AbsolutePath {
+            embedPathCount += 1
+            return try embedPathStub?() ?? AbsolutePath(validating: "/")
+        }
+    }
+#endif

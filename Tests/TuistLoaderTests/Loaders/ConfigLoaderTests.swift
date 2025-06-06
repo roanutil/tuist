@@ -3,12 +3,12 @@ import Mockable
 import Path
 import ProjectDescription
 import TuistCore
+import TuistRootDirectoryLocator
 import TuistSupport
 import XCTest
-@testable import TuistCoreTesting
+
 @testable import TuistLoader
-@testable import TuistLoaderTesting
-@testable import TuistSupportTesting
+@testable import TuistTesting
 
 final class ConfigLoaderTests: TuistUnitTestCase {
     private var rootDirectoryLocator: MockRootDirectoryLocating!
@@ -262,6 +262,24 @@ final class ConfigLoaderTests: TuistUnitTestCase {
         // Then
         XCTAssertBetterEqual(result, TuistCore.Tuist(
             project: .xcode(TuistXcodeProjectOptions()),
+            fullHandle: nil,
+            url: Constants.URLs.production
+        ))
+    }
+
+    func test_loadConfig_whenFileIsMissing_but_swiftPackageExists() async throws {
+        // Given
+        let packageDirectoryPath = try temporaryPath().appending(component: "package")
+        try await fileSystem.makeDirectory(at: packageDirectoryPath)
+        try await fileSystem.touch(packageDirectoryPath.appending(component: "Package.swift"))
+        stub(rootDirectory: nil)
+
+        // When
+        let result = try await subject.loadConfig(path: packageDirectoryPath)
+
+        // Then
+        XCTAssertBetterEqual(result, TuistCore.Tuist(
+            project: .swiftPackage(TuistSwiftPackageOptions()),
             fullHandle: nil,
             url: Constants.URLs.production
         ))

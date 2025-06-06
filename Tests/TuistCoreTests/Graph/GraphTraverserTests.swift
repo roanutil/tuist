@@ -5,8 +5,7 @@ import TuistSupport
 import XcodeGraph
 import XCTest
 @testable import TuistCore
-@testable import TuistCoreTesting
-@testable import TuistSupportTesting
+@testable import TuistTesting
 
 final class GraphTraverserTests: TuistUnitTestCase {
     func test_dependsOnXCTest_when_is_framework() {
@@ -4054,6 +4053,7 @@ final class GraphTraverserTests: TuistUnitTestCase {
         XCTAssertEqual(got.sorted(), [
             .xcframework(
                 path: "/xcframeworks/direct.xcframework",
+                expectedSignature: nil,
                 infoPlist: .test(libraries: [.test(
                     identifier: "id",
                     path: try RelativePath(validating: "path"),
@@ -4063,6 +4063,7 @@ final class GraphTraverserTests: TuistUnitTestCase {
             ),
             .xcframework(
                 path: "/xcframeworks/transitive.xcframework",
+                expectedSignature: nil,
                 infoPlist: .test(libraries: [.test(
                     identifier: "id",
                     path: try RelativePath(validating: "path"),
@@ -4072,6 +4073,7 @@ final class GraphTraverserTests: TuistUnitTestCase {
             ),
             .xcframework(
                 path: "/xcframeworks/framework-transitive.xcframework",
+                expectedSignature: nil,
                 infoPlist: .test(libraries: [.test(
                     identifier: "id",
                     path: try RelativePath(validating: "path"),

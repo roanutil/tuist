@@ -3,9 +3,10 @@ import Foundation
 import Mockable
 import Path
 import ProjectDescription
-import ServiceContextModule
 import TSCUtility
 import TuistCore
+import TuistRootDirectoryLocator
+import TuistSimulator
 import TuistSupport
 import XcodeGraph
 
@@ -196,7 +197,7 @@ public final class PackageInfoMapper: PackageInfoMapping {
                         .map {
                             switch $0 {
                             case let .xcframework(path, condition):
-                                return .xcframework(path: path, condition: condition)
+                                return .xcframework(path: path, expectedSignature: nil, condition: condition)
                             case let .target(name, condition):
                                 let name = moduleAliases?[name] ?? name
                                 return .project(
@@ -226,23 +227,22 @@ public final class PackageInfoMapper: PackageInfoMapping {
             let dependencyName = xcframework.relative(to: remoteXcframeworksPath).basenameWithoutExt
             let xcframeworkPath = Path
                 .relativeToRoot(xcframework.relative(to: try await rootDirectoryLocator.locate(from: path)).pathString)
-            externalDependencies[dependencyName] = [.xcframework(path: xcframeworkPath)]
+            externalDependencies[dependencyName] = [.xcframework(path: xcframeworkPath, expectedSignature: nil)]
         }
         return externalDependencies
     }
 
-    /**
-     There are certain Swift Package targets that need to run on macOS. Examples of these are Swift Macros.
-     It's important that we take that into account when generating and serializing the graph, which contains information
-     about targets' macros, into disk.  It's important to note that these targets require its dependencies, direct or transitive,
-     to compile for macOS too. This function traverses the graph and returns all the targets that need to compile for macOS
-     in a set. The set is then used in the serialization logic when:
-
-     - Unfolding the target into platform-specific targets.
-     - Declaring dependencies.
-
-     All the complexity associated to this might go away once we have support for multi-platform targets.
-     */
+    /// There are certain Swift Package targets that need to run on macOS. Examples of these are Swift Macros.
+    ///
+    /// It's important that we take that into account when generating and serializing the graph, which contains information about
+    /// targets' macros, into disk.  It's important to note that these targets require its dependencies, direct or transitive, to
+    /// compile for macOS too. This function traverses the graph and returns all the targets that need to compile for macOS in a
+    /// set. The set is then used in the serialization logic when:
+    ///
+    /// - Unfolding the target into platform-specific targets.
+    /// - Declaring dependencies.
+    ///
+    /// All the complexity associated to this might go away once we have support for multi-platform targets.
     private func macOSTargets(
         _ resolvedDependencies: [String: [ResolvedDependency]],
         packageInfos: [String: PackageInfo]
@@ -403,13 +403,13 @@ public final class PackageInfoMapper: PackageInfoMapping {
         case .test, .executable:
             switch packageType {
             case .external:
-                ServiceContext.current?.logger?.debug("Target \(target.name) of type \(target.type) ignored")
+                Logger.current.debug("Target \(target.name) of type \(target.type) ignored")
                 return nil
             case .local:
                 break
             }
         default:
-            ServiceContext.current?.logger?.debug("Target \(target.name) of type \(target.type) ignored")
+            Logger.current.debug("Target \(target.name) of type \(target.type) ignored")
             return nil
         }
 
@@ -422,7 +422,7 @@ public final class PackageInfoMapper: PackageInfoMapping {
             productTypes: productTypes
         )
         else {
-            ServiceContext.current?.logger?.debug("Target \(target.name) ignored by product type")
+            Logger.current.debug("Target \(target.name) ignored by product type")
             return nil
         }
 
@@ -478,7 +478,7 @@ public final class PackageInfoMapper: PackageInfoMapping {
             }
         }
 
-        let version = try Version(versionString: try SwiftVersionProvider.shared.swiftVersion(), usesLenientParsing: true)
+        let version = try Version(versionString: try SwiftVersionProvider.current.swiftVersion(), usesLenientParsing: true)
         let minDeploymentTargets = ProjectDescription.DeploymentTargets.oldestVersions(for: version)
 
         let deploymentTargets = try ProjectDescription.DeploymentTargets.from(
@@ -617,7 +617,12 @@ public final class PackageInfoMapper: PackageInfoMapping {
                 guard let artifactPath = artifactPaths[target.name] else {
                     throw PackageInfoMapperError.missingBinaryArtifact(package: packageInfo.name, target: target.name)
                 }
-                return .xcframework(path: .path(artifactPath.pathString), status: .required, condition: nil)
+                return .xcframework(
+                    path: .path(artifactPath.pathString),
+                    expectedSignature: nil,
+                    status: .required,
+                    condition: nil
+                )
             }
             if let aliasedName = moduleAliases?[name] {
                 dependencyModuleAliases[name] = aliasedName
@@ -965,7 +970,7 @@ extension ProjectDescription.TargetDependency {
             case let .target(name, condition):
                 return .target(name: name, condition: condition)
             case let .xcframework(path, condition):
-                return .xcframework(path: path, condition: condition)
+                return .xcframework(path: path, expectedSignature: nil, condition: condition)
             case let .externalTarget(project, target, condition):
                 return .project(
                     target: target,

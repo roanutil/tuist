@@ -8,7 +8,7 @@ import XcodeProj
 import XCTest
 
 @testable import TuistSupport
-@testable import TuistSupportTesting
+@testable import TuistTesting
 
 public enum Destination {
     case simulator, device
@@ -35,18 +35,10 @@ open class TuistAcceptanceTestCase: XCTestCase {
         fixtureTemporaryDirectory = try TemporaryDirectory(removeTreeOnDeinit: true)
 
         sourceRootPath = try AbsolutePath(
-            validating: ProcessInfo.processInfo.environment[
+            validating: Environment.current.variables[
                 "TUIST_CONFIG_SRCROOT"
             ]!
         )
-
-        do {
-            // Environment
-            environment = try MockEnvironment()
-            Environment._shared.mutate { $0 = environment }
-        } catch {
-            XCTFail("Failed to setup environment")
-        }
     }
 
     override open func tearDown() async throws {
@@ -58,6 +50,10 @@ open class TuistAcceptanceTestCase: XCTestCase {
         derivedDataDirectory = nil
 
         try await super.tearDown()
+    }
+
+    public func setUpFixture(_ fixture: String) async throws {
+        try await setUpFixture(.custom(fixture))
     }
 
     public func setUpFixture(_ fixture: TuistAcceptanceFixtures) async throws {
