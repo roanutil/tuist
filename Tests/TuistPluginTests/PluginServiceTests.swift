@@ -3,11 +3,11 @@ import struct ProjectDescription.Plugin
 import struct ProjectDescription.PluginLocation
 import TSCBasic
 import TuistCore
-import TuistCoreTesting
+import TuistGit
 import TuistLoader
 import TuistScaffold
 import TuistSupport
-import TuistSupportTesting
+import TuistTesting
 import XCTest
 @testable import TuistPlugin
 

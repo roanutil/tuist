@@ -1,26 +1,29 @@
 import ArgumentParser
+import FileSystem
+import FileSystemTesting
 import Foundation
 import Mockable
 import Path
+import Testing
 import TuistAnalytics
 import TuistCore
+import TuistGit
 import TuistSupport
-import XCTest
 
 @testable import TuistKit
-@testable import TuistSupportTesting
+@testable import TuistTesting
 
-final class CommandEventFactoryTests: TuistUnitTestCase {
+struct CommandEventFactoryTests {
     private var subject: CommandEventFactory!
     private var machineEnvironment: MachineEnvironmentRetrieving!
     private var gitController: MockGitControlling!
 
-    override func setUp() {
-        super.setUp()
+    init() throws {
         machineEnvironment = MockMachineEnvironment()
         gitController = MockGitControlling()
 
-        given(swiftVersionProvider)
+        let swiftVersionProviderMock = try #require(SwiftVersionProvider.mocked)
+        given(swiftVersionProviderMock)
             .swiftVersion()
             .willReturn("5.1")
 
@@ -30,18 +33,11 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
         )
     }
 
-    override func tearDown() {
-        subject = nil
-        machineEnvironment = nil
-        gitController = nil
-        super.tearDown()
-    }
-
     // MARK: - Tests
 
-    func test_tagCommand_tagsExpectedCommand() throws {
+    @Test(.withMockedSwiftVersionProvider, .inTemporaryDirectory) func test_tagCommand_tagsExpectedCommand() throws {
         // Given
-        let path = try temporaryPath()
+        let path = try #require(FileSystem.temporaryTestDirectory)
         let projectPath = path.appending(component: "Project")
         let ranAt = Date()
         let info = TrackableCommandInfo(
@@ -114,7 +110,8 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
             ],
             previewId: nil,
             resultBundlePath: nil,
-            ranAt: ranAt
+            ranAt: ranAt,
+            buildRunId: nil
         )
         let expectedEvent = CommandEvent(
             runId: "run-id",
@@ -194,7 +191,8 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
             ),
             previewId: nil,
             resultBundlePath: nil,
-            ranAt: ranAt
+            ranAt: ranAt,
+            buildRunId: nil
         )
 
         given(gitController)
@@ -206,12 +204,15 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
             .willReturn(true)
 
         given(gitController)
-            .urlOrigin(workingDirectory: .value(path))
-            .willReturn("https://github.com/tuist/tuist")
-
-        given(gitController)
-            .ref(environment: .any)
-            .willReturn("github-ref")
+            .gitInfo(workingDirectory: .value(path))
+            .willReturn(
+                .test(
+                    ref: "github-ref",
+                    branch: "main",
+                    sha: "commit-sha",
+                    remoteURLOrigin: "https://github.com/tuist/tuist"
+                )
+            )
 
         given(gitController)
             .isInGitRepository(workingDirectory: .any)
@@ -221,10 +222,6 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
             .hasCurrentBranchCommits(workingDirectory: .any)
             .willReturn(true)
 
-        given(gitController)
-            .currentBranch(workingDirectory: .any)
-            .willReturn("main")
-
         // When
         let event = try subject.make(
             from: info,
@@ -232,27 +229,28 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
         )
 
         // Then
-        XCTAssertEqual(event.name, expectedEvent.name)
-        XCTAssertEqual(event.subcommand, expectedEvent.subcommand)
-        XCTAssertEqual(event.durationInMs, expectedEvent.durationInMs)
-        XCTAssertEqual(event.clientId, expectedEvent.clientId)
-        XCTAssertEqual(event.tuistVersion, expectedEvent.tuistVersion)
-        XCTAssertEqual(event.swiftVersion, expectedEvent.swiftVersion)
-        XCTAssertEqual(event.macOSVersion, expectedEvent.macOSVersion)
-        XCTAssertEqual(event.machineHardwareName, expectedEvent.machineHardwareName)
-        XCTAssertEqual(event.isCI, expectedEvent.isCI)
-        XCTAssertEqual(event.gitCommitSHA, expectedEvent.gitCommitSHA)
-        XCTAssertEqual(event.gitRemoteURLOrigin, expectedEvent.gitRemoteURLOrigin)
-        XCTAssertEqual(event.gitRef, expectedEvent.gitRef)
-        XCTAssertBetterEqual(
-            event.graph,
-            expectedEvent.graph
+        #expect(event.name == expectedEvent.name)
+        #expect(event.subcommand == expectedEvent.subcommand)
+        #expect(event.durationInMs == expectedEvent.durationInMs)
+        #expect(event.clientId == expectedEvent.clientId)
+        #expect(event.tuistVersion == expectedEvent.tuistVersion)
+        #expect(event.swiftVersion == expectedEvent.swiftVersion)
+        #expect(event.macOSVersion == expectedEvent.macOSVersion)
+        #expect(event.machineHardwareName == expectedEvent.machineHardwareName)
+        #expect(event.isCI == expectedEvent.isCI)
+        #expect(event.gitCommitSHA == expectedEvent.gitCommitSHA)
+        #expect(event.gitRemoteURLOrigin == expectedEvent.gitRemoteURLOrigin)
+        #expect(event.gitRef == expectedEvent.gitRef)
+
+        #expect(
+            event.graph ==
+                expectedEvent.graph
         )
     }
 
-    func test_make_when_is_not_in_git_repository() throws {
+    @Test(.withMockedSwiftVersionProvider, .inTemporaryDirectory) func test_make_when_is_not_in_git_repository() throws {
         // Given
-        let path = try temporaryPath()
+        let path = try #require(FileSystem.temporaryTestDirectory)
         let info = TrackableCommandInfo(
             runId: "run-id",
             name: "cache",
@@ -265,17 +263,18 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
             selectiveTestingCacheItems: [:],
             previewId: nil,
             resultBundlePath: nil,
-            ranAt: Date()
+            ranAt: Date(),
+            buildRunId: nil
         )
+
+        given(gitController)
+            .gitInfo(workingDirectory: .value(path))
+            .willReturn(.test())
 
         given(gitController)
             .isInGitRepository(workingDirectory: .any)
             .willReturn(false)
 
-        given(gitController)
-            .ref(environment: .any)
-            .willReturn(nil)
-
         // When
         let event = try subject.make(
             from: info,
@@ -283,14 +282,17 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
         )
 
         // Then
-        XCTAssertEqual(event.gitCommitSHA, nil)
-        XCTAssertEqual(event.gitRemoteURLOrigin, nil)
-        XCTAssertEqual(event.gitRef, nil)
+        #expect(event.gitCommitSHA == nil)
+        #expect(event.gitRemoteURLOrigin == nil)
+        #expect(event.gitRef == nil)
     }
 
-    func test_make_when_is_in_git_repository_and_branch_has_no_commits_and_no_remote_url_origin() throws {
+    @Test(
+        .withMockedSwiftVersionProvider,
+        .inTemporaryDirectory
+    ) func test_make_when_is_in_git_repository_and_branch_has_no_commits_and_no_remote_url_origin() throws {
         // Given
-        let path = try temporaryPath()
+        let path = try #require(FileSystem.temporaryTestDirectory)
         let info = TrackableCommandInfo(
             runId: "run-id",
             name: "cache",
@@ -303,7 +305,8 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
             selectiveTestingCacheItems: [:],
             previewId: nil,
             resultBundlePath: nil,
-            ranAt: Date()
+            ranAt: Date(),
+            buildRunId: nil
         )
 
         given(gitController)
@@ -323,12 +326,8 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
             .willReturn(false)
 
         given(gitController)
-            .ref(environment: .any)
-            .willReturn(nil)
-
-        given(gitController)
-            .currentBranch(workingDirectory: .any)
-            .willReturn(nil)
+            .gitInfo(workingDirectory: .value(path))
+            .willReturn(.test(ref: nil, branch: nil, sha: "commit-sha"))
 
         // When
         let event = try subject.make(
@@ -337,14 +336,17 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
         )
 
         // Then
-        XCTAssertEqual(event.gitCommitSHA, "commit-sha")
-        XCTAssertEqual(event.gitRemoteURLOrigin, nil)
-        XCTAssertEqual(event.gitRef, nil)
+        #expect(event.gitCommitSHA == "commit-sha")
+        #expect(event.gitRemoteURLOrigin == nil)
+        #expect(event.gitRef == nil)
     }
 
-    func test_make_when_is_in_git_repository_and_branch_has_commits_and_no_remote_url_origin() throws {
+    @Test(
+        .withMockedSwiftVersionProvider,
+        .inTemporaryDirectory
+    ) func test_make_when_is_in_git_repository_and_branch_has_commits_and_no_remote_url_origin() throws {
         // Given
-        let path = try temporaryPath()
+        let path = try #require(FileSystem.temporaryTestDirectory)
         let info = TrackableCommandInfo(
             runId: "run-id",
             name: "cache",
@@ -357,7 +359,8 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
             selectiveTestingCacheItems: [:],
             previewId: nil,
             resultBundlePath: nil,
-            ranAt: Date()
+            ranAt: Date(),
+            buildRunId: nil
         )
 
         given(gitController)
@@ -369,16 +372,12 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
             .willReturn(false)
 
         given(gitController)
-            .ref(environment: .any)
-            .willReturn(nil)
+            .gitInfo(workingDirectory: .value(path))
+            .willReturn(.test())
 
         given(gitController)
             .hasUrlOrigin(workingDirectory: .value(path))
             .willReturn(false)
-
-        given(gitController)
-            .currentBranch(workingDirectory: .any)
-            .willReturn(nil)
 
         // When
         let event = try subject.make(
@@ -387,9 +386,9 @@ final class CommandEventFactoryTests: TuistUnitTestCase {
         )
 
         // Then
-        XCTAssertEqual(event.gitCommitSHA, nil)
-        XCTAssertEqual(event.gitRemoteURLOrigin, nil)
-        XCTAssertEqual(event.gitRef, nil)
+        #expect(event.gitCommitSHA == nil)
+        #expect(event.gitRemoteURLOrigin == nil)
+        #expect(event.gitRef == nil)
     }
 }
 

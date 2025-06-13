@@ -3,8 +3,8 @@ import Foundation
 import Mockable
 import Path
 import struct ProjectDescription.Config
-import ServiceContextModule
 import TuistCore
+import TuistRootDirectoryLocator
 import TuistSupport
 
 @Mockable
@@ -48,7 +48,7 @@ public final class ConfigLoader: ConfigLoading {
         }
 
         if configPath.pathString.contains("Config.swift") {
-            ServiceContext.current?.alerts?
+            AlertController.current
                 .warning(.alert("Tuist/Config.swift is deprecated. Rename Tuist/Config.swift to Tuist.swift at the root."))
         }
 
@@ -92,7 +92,14 @@ public final class ConfigLoader: ConfigLoading {
             include: ["Project.swift", "Workspace.swift"]
         ).collect().isEmpty)
 
-        if anyXcodeProjectOrWorkspace, !anyWorkspaceOrProjectManifest {
+        let anyPackageSwift = !(
+            try await fileSystem.glob(directory: path, include: ["Package.swift"])
+                .collect().isEmpty
+        )
+
+        if anyPackageSwift, !anyWorkspaceOrProjectManifest {
+            return Tuist(project: .swiftPackage(TuistSwiftPackageOptions()), fullHandle: nil, url: Constants.URLs.production)
+        } else if anyXcodeProjectOrWorkspace, !anyWorkspaceOrProjectManifest {
             return Tuist(
                 project: .xcode(TuistXcodeProjectOptions()),
                 fullHandle: nil,

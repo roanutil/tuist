@@ -3,16 +3,27 @@ import Path
 import TuistSupport
 import XcodeGraph
 
+public enum TuistConfigError: LocalizedError, Equatable {
+    case notAGeneratedProjectNorSwiftPackage(errorMessageOverride: String?)
+
+    public var errorDescription: String? {
+        switch self {
+        case let .notAGeneratedProjectNorSwiftPackage(errorMessageOverride):
+            return errorMessageOverride ?? "A generated Xcode project or Swift Package is necessary for this feature."
+        }
+    }
+}
+
 /// This model allows to configure Tuist.
 public struct Tuist: Equatable, Hashable {
     /// Configures the project Tuist will interact with.
     /// When no project is provided, Tuist defaults to the workspace or project in the current directory.
     public let project: TuistProject
 
-    /// The full project handle such as tuist-org/tuist.
+    /// The full project handle such as "tuist-org/tuist".
     public let fullHandle: String?
 
-    /// The base URL that points to the Tuist server.
+    /// The base `URL` that points to the Tuist server.
     public let url: URL
 
     /// Returns the default Tuist configuration.
@@ -24,10 +35,12 @@ public struct Tuist: Equatable, Hashable {
         )
     }
 
-    /// Initializes the tuist cofiguration.
+    /// Initializes the tuist configuration.
     ///
     /// - Parameters:
-
+    ///   - project: The `TuistProject` instance that represents the project Tuist will interact with.
+    ///   - fullHandle: An optional string representing the full handle of the project, such as "tuist-org/tuist".
+    ///   - url: The base `URL` pointing to the Tuist server.
     public init(
         project: TuistProject,
         fullHandle: String?,
@@ -44,6 +57,13 @@ public struct Tuist: Equatable, Hashable {
         hasher.combine(project)
         hasher.combine(fullHandle)
         hasher.combine(url)
+    }
+
+    public func assertingIsGeneratedProjectOrSwiftPackage(errorMessageOverride: String?) throws -> Self {
+        switch project {
+        case .generated, .swiftPackage: return self
+        case .xcode: throw TuistConfigError.notAGeneratedProjectNorSwiftPackage(errorMessageOverride: errorMessageOverride)
+        }
     }
 }
 

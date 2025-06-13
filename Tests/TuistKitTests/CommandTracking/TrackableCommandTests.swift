@@ -5,12 +5,13 @@ import Path
 import TuistAnalytics
 import TuistAsyncQueue
 import TuistCore
+import TuistGit
 import TuistServer
 import TuistSupport
 import XCTest
 
 @testable import TuistKit
-@testable import TuistSupportTesting
+@testable import TuistTesting
 
 final class TrackableCommandTests: TuistTestCase {
     private var subject: TrackableCommand!
@@ -32,8 +33,8 @@ final class TrackableCommandTests: TuistTestCase {
             .willReturn(false)
 
         given(gitController)
-            .ref(environment: .any)
-            .willReturn(nil)
+            .gitInfo(workingDirectory: .any)
+            .willReturn(.test())
     }
 
     override func tearDown() {
@@ -71,15 +72,19 @@ final class TrackableCommandTests: TuistTestCase {
         makeSubject(flag: false, shouldFail: true)
         // When
         await XCTAssertThrowsSpecific(
-            try await subject.run(backend: TuistAnalyticsServerBackend(fullHandle: "", url: .test())),
+            try await subject.run(
+                backend: TuistAnalyticsServerBackend(fullHandle: "", url: .test())
+            ),
             TestCommand.TestError.commandFailed
         )
 
         // Then
         verify(asyncQueue)
-            .dispatch(event: Parameter<CommandEvent>.matching { event in
-                event.name == "test" && event.status == .failure("Command failed")
-            })
+            .dispatch(
+                event: Parameter<CommandEvent>.matching { event in
+                    event.name == "test" && event.status == .failure("Command failed")
+                }
+            )
             .called(1)
     }
 
@@ -95,7 +100,7 @@ final class TrackableCommandTests: TuistTestCase {
             .dispatch(event: Parameter<CommandEvent>.any)
             .called(1)
         verify(gitController)
-            .isInGitRepository(workingDirectory: .value(try AbsolutePath(validating: "/my-path")))
+            .gitInfo(workingDirectory: .value(try AbsolutePath(validating: "/my-path")))
             .called(1)
     }
 
@@ -127,7 +132,7 @@ final class TrackableCommandTests: TuistTestCase {
             .dispatch(event: Parameter<CommandEvent>.any)
             .called(1)
         verify(gitController)
-            .isInGitRepository(workingDirectory: .value(fileHandler.currentPath))
+            .gitInfo(workingDirectory: .value(fileHandler.currentPath))
             .called(1)
     }
 
@@ -141,7 +146,9 @@ final class TrackableCommandTests: TuistTestCase {
         )
 
         // When
-        try await subject.run(backend: MockTuistServerAnalyticsBackend(fullHandle: "", url: .test()))
+        try await subject.run(
+            backend: MockTuistServerAnalyticsBackend(fullHandle: "", url: .test())
+        )
 
         // Then
         verify(asyncQueue)

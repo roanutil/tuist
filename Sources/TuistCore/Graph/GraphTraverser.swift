@@ -318,7 +318,7 @@ public class GraphTraverser: GraphTraversing {
         }
     }
 
-    // Filter based on edges
+    /// Filter based on edges
     public func directStaticDependencies(path: Path.AbsolutePath, name: String) -> Set<
         GraphDependencyReference
     > {
@@ -350,7 +350,7 @@ public class GraphTraverser: GraphTraversing {
 
         var references = Set<GraphDependencyReference>()
 
-        /// Precompiled frameworks
+        // Precompiled frameworks
         var precompiledFrameworks = filterDependencies(
             from: .target(name: name, path: path),
             test: \.isPrecompiledDynamicAndLinkable,
@@ -375,7 +375,7 @@ public class GraphTraverser: GraphTraversing {
             }
         )
 
-        /// Other targets' frameworks.
+        // Other targets' frameworks.
         var otherTargetFrameworks = filterDependencies(
             from: .target(name: name, path: path),
             test: isEmbeddableDependencyTarget,
@@ -1413,7 +1413,7 @@ public class GraphTraverser: GraphTraversing {
     }
 
     func canEmbedFrameworks(target: Target) -> Bool {
-        let validProducts: [Product] = [
+        var validProducts: [Product] = [
             .app,
             .watch2App,
             .appClip,
@@ -1423,6 +1423,9 @@ public class GraphTraverser: GraphTraversing {
             .systemExtension,
             .xpc,
         ]
+        if target.supportedPlatforms == Set([.macOS]) {
+            validProducts.append(.bundle)
+        }
         return validProducts.contains(target.product)
     }
 
@@ -1502,6 +1505,7 @@ public class GraphTraverser: GraphTraversing {
         case let .xcframework(xcframework):
             return .xcframework(
                 path: xcframework.path,
+                expectedSignature: xcframework.expectedSignature,
                 infoPlist: xcframework.infoPlist,
                 status: xcframework.status,
                 condition: condition

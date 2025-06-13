@@ -1,6 +1,5 @@
 import Foundation
 import Path
-import ServiceContextModule
 import TuistCache
 import TuistCore
 import TuistGenerator
@@ -46,6 +45,10 @@ final class GenerateService {
         let timer = clock.startTimer()
         let path = try self.path(path)
         let config = try await configLoader.loadConfig(path: path)
+            .assertingIsGeneratedProjectOrSwiftPackage(
+                errorMessageOverride:
+                "The 'tuist generate' command is only available for generated projects and Swift packages."
+            )
         let cacheStorage = try await cacheStorageFactory.cacheStorage(config: config)
         let generator = generatorFactory.generation(
             config: config,
@@ -54,12 +57,15 @@ final class GenerateService {
             ignoreBinaryCache: ignoreBinaryCache,
             cacheStorage: cacheStorage
         )
-        let (workspacePath, _, environment) = try await generator.generateWithGraph(path: path)
+        let (workspacePath, _, _) = try await generator.generateWithGraph(
+            path: path,
+            options: config.project.generatedProject?.generationOptions
+        )
         if !noOpen {
             try await opener.open(path: workspacePath)
         }
-        ServiceContext.current?.alerts?.success(.alert("Project generated."))
-        ServiceContext.current?.logger?.notice(timeTakenLoggerFormatter.timeTakenMessage(for: timer))
+        AlertController.current.success(.alert("Project generated."))
+        Logger.current.notice(timeTakenLoggerFormatter.timeTakenMessage(for: timer))
     }
 
     // MARK: - Helpers

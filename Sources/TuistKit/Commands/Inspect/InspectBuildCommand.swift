@@ -1,7 +1,7 @@
 import ArgumentParser
 import Foundation
 
-struct InspectBuildCommand: AsyncParsableCommand {
+struct InspectBuildCommand: AsyncParsableCommand, NooraReadyCommand {
     static var configuration: CommandConfiguration {
         CommandConfiguration(
             commandName: "build",
@@ -17,10 +17,19 @@ struct InspectBuildCommand: AsyncParsableCommand {
     )
     var path: String?
 
+    @Option(
+        name: .long,
+        help: "The path to the directory containing the project's derived data artifacts.",
+        completion: .directory,
+        envKey: .inspectBuildProjectDerivedDataPath
+    )
+    var projectDerivedDataPath: String?
+
     func run() async throws {
         try await InspectBuildCommandService()
             .run(
-                path: path
+                path: path,
+                projectDerivedDataPath: projectDerivedDataPath
             )
     }
 }

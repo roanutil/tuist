@@ -1,14 +1,16 @@
 import Foundation
 import Path
-import ServiceContextModule
+import TuistSupport
 import XcodeGraph
 
 /// Storage for run metadata, such as binary cache.
 public actor RunMetadataStorage {
+    @TaskLocal public static var current: RunMetadataStorage = .init()
+
     public init() {}
 
     /// A unique ID associated with a specific run
-    public var runId = UUID().uuidString
+    public var runId: String { Environment.current.processId }
     /// Graph associated with the current run
     public private(set) var graph: Graph?
     public func update(graph: Graph?) {
@@ -38,18 +40,10 @@ public actor RunMetadataStorage {
     public func update(resultBundlePath: AbsolutePath?) {
         self.resultBundlePath = resultBundlePath
     }
-}
 
-private enum RunMetadataStorageContextKey: ServiceContextKey {
-    typealias Value = RunMetadataStorage
-}
-
-extension ServiceContext {
-    public var runMetadataStorage: RunMetadataStorage? {
-        get {
-            self[RunMetadataStorageContextKey.self]
-        } set {
-            self[RunMetadataStorageContextKey.self] = newValue
-        }
+    /// The ID of the latest build run.
+    public private(set) var buildRunId: String?
+    public func update(buildRunId: String?) {
+        self.buildRunId = buildRunId
     }
 }

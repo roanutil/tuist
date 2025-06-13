@@ -2,9 +2,9 @@ import Mockable
 import Path
 import ProjectDescription
 import TuistCore
-import TuistLoaderTesting
+import TuistGit
 import TuistSupport
-import TuistSupportTesting
+import TuistTesting
 import XCTest
 
 @testable import TuistLoader
