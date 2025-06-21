@@ -1,7 +1,7 @@
-#!/bin/bash
-# mise description="Lint the workspace"
-set -euo pipefail
+#!/usr/bin/env bash
+#MISE description="Lint the workspace"
+#USAGE flag "-f --fix" help="Automatically fix linting issues where possible"
+set -eo pipefail
 
-swiftformat cli/ app/ --lint
-swiftlint lint --quiet --config .swiftlint.yml cli/Sources
-tuist inspect implicit-imports
+# Lint all components of the project
+mise run cli:lint "$@"
