@@ -5766,6 +5766,250 @@ struct PackageInfoMapperTests {
         let target = try #require(project?.targets.first(where: { $0.name == "Target1" }))
         #expect(target.dependencies.isEmpty)
     }
+
+    @Test(
+        .inTemporaryDirectory, .withMockedSwiftVersionProvider
+    ) func map_whenWrapperTargetPattern_usesProductNameAsModuleName() async throws {
+        let basePath = try #require(FileSystem.temporaryTestDirectory)
+        try await fileSystem.makeDirectory(at: basePath.appending(try RelativePath(validating: "Package/Sources/ATarget")))
+
+        let project = try await subject.map(
+            package: "Package",
+            basePath: basePath,
+            packageInfos: [
+                "Package": .test(
+                    name: "Package",
+                    products: [
+                        .init(name: "A", type: .library(.automatic), targets: ["ATarget"]),
+                    ],
+                    targets: [
+                        .test(name: "ATarget"),
+                    ],
+                    platforms: [.ios],
+                    cLanguageStandard: nil,
+                    cxxLanguageStandard: nil,
+                    swiftLanguageVersions: nil
+                ),
+            ]
+        )
+        let mappedTarget = try #require(project?.targets.first(where: { $0.name == "ATarget" }))
+        #expect(mappedTarget.productName == "A")
+    }
+
+    @Test(
+        .inTemporaryDirectory, .withMockedSwiftVersionProvider
+    ) func map_whenWrapperTargetPattern_productTypesLookedUpByProductName() async throws {
+        let basePath = try #require(FileSystem.temporaryTestDirectory)
+        try await fileSystem.makeDirectory(at: basePath.appending(try RelativePath(validating: "Package/Sources/ATarget")))
+
+        let project = try await subject.map(
+            package: "Package",
+            basePath: basePath,
+            packageInfos: [
+                "Package": .test(
+                    name: "Package",
+                    products: [
+                        .init(name: "A", type: .library(.automatic), targets: ["ATarget"]),
+                    ],
+                    targets: [
+                        .test(name: "ATarget"),
+                    ],
+                    platforms: [.ios],
+                    cLanguageStandard: nil,
+                    cxxLanguageStandard: nil,
+                    swiftLanguageVersions: nil
+                ),
+            ],
+            packageSettings: .test(
+                productTypes: ["A": .framework],
+                baseSettings: .default
+            )
+        )
+        let mappedTarget = try #require(project?.targets.first(where: { $0.name == "ATarget" }))
+        #expect(mappedTarget.product == .framework)
+    }
+
+    @Test(
+        .inTemporaryDirectory, .withMockedSwiftVersionProvider
+    ) func map_whenSameNameProductAndTarget_keepsTargetNameAsProductName() async throws {
+        let basePath = try #require(FileSystem.temporaryTestDirectory)
+        try await fileSystem.makeDirectory(at: basePath.appending(try RelativePath(validating: "Package/Sources/Foo")))
+
+        let project = try await subject.map(
+            package: "Package",
+            basePath: basePath,
+            packageInfos: [
+                "Package": .test(
+                    name: "Package",
+                    products: [
+                        .init(name: "Foo", type: .library(.automatic), targets: ["Foo"]),
+                    ],
+                    targets: [
+                        .test(name: "Foo"),
+                    ],
+                    platforms: [.ios],
+                    cLanguageStandard: nil,
+                    cxxLanguageStandard: nil,
+                    swiftLanguageVersions: nil
+                ),
+            ]
+        )
+        let mappedTarget = try #require(project?.targets.first(where: { $0.name == "Foo" }))
+        #expect(mappedTarget.productName == "Foo")
+    }
+
+    @Test(
+        .inTemporaryDirectory, .withMockedSwiftVersionProvider
+    ) func map_whenWrapperTargetDependsOnBinaryTarget_keepsTargetNameAsProductName() async throws {
+        let basePath = try #require(FileSystem.temporaryTestDirectory)
+        try await fileSystem.makeDirectory(
+            at: basePath.appending(try RelativePath(validating: "Package/Sources/GoogleMapsTarget"))
+        )
+
+        let project = try await subject.map(
+            package: "Package",
+            basePath: basePath,
+            packageInfos: [
+                "Package": .test(
+                    name: "Package",
+                    products: [
+                        .init(name: "GoogleMaps", type: .library(.automatic), targets: ["GoogleMapsTarget"]),
+                    ],
+                    targets: [
+                        .test(
+                            name: "GoogleMapsTarget",
+                            dependencies: [.target(name: "GoogleMaps", condition: nil)]
+                        ),
+                        .test(name: "GoogleMaps", type: .binary),
+                    ],
+                    platforms: [.ios],
+                    cLanguageStandard: nil,
+                    cxxLanguageStandard: nil,
+                    swiftLanguageVersions: nil
+                ),
+            ]
+        )
+        let mappedTarget = try #require(project?.targets.first(where: { $0.name == "GoogleMapsTarget" }))
+        #expect(mappedTarget.productName == "GoogleMapsTarget")
+    }
+
+    @Test(
+        .inTemporaryDirectory, .withMockedSwiftVersionProvider
+    ) func map_whenWrapperTargetDependsTransitivelyOnBinaryTarget_keepsTargetNameAsProductName() async throws {
+        let basePath = try #require(FileSystem.temporaryTestDirectory)
+        try await fileSystem.makeDirectory(
+            at: basePath.appending(try RelativePath(validating: "Package/Sources/FirebaseAnalyticsTarget"))
+        )
+        try await fileSystem.makeDirectory(
+            at: basePath.appending(try RelativePath(validating: "Package/Sources/FirebaseAnalyticsWrapper"))
+        )
+
+        let project = try await subject.map(
+            package: "Package",
+            basePath: basePath,
+            packageInfos: [
+                "Package": .test(
+                    name: "Package",
+                    products: [
+                        .init(name: "FirebaseAnalytics", type: .library(.automatic), targets: ["FirebaseAnalyticsTarget"]),
+                    ],
+                    targets: [
+                        .test(
+                            name: "FirebaseAnalyticsTarget",
+                            dependencies: [
+                                .target(name: "FirebaseAnalyticsWrapper", condition: nil),
+                            ]
+                        ),
+                        .test(
+                            name: "FirebaseAnalyticsWrapper",
+                            dependencies: [.target(name: "FirebaseAnalytics", condition: nil)]
+                        ),
+                        .test(name: "FirebaseAnalytics", type: .binary),
+                    ],
+                    platforms: [.ios],
+                    cLanguageStandard: nil,
+                    cxxLanguageStandard: nil,
+                    swiftLanguageVersions: nil
+                ),
+            ]
+        )
+        let mappedTarget = try #require(project?.targets.first(where: { $0.name == "FirebaseAnalyticsTarget" }))
+        #expect(mappedTarget.productName == "FirebaseAnalyticsTarget")
+    }
+
+    @Test(
+        .inTemporaryDirectory, .withMockedSwiftVersionProvider
+    ) func map_whenTransitiveTargetMatchesProductPrefix_keepsOwnTargetNameAsProductName() async throws {
+        let basePath = try #require(FileSystem.temporaryTestDirectory)
+        try await fileSystem.makeDirectory(at: basePath.appending(try RelativePath(validating: "Package/Sources/Sharing")))
+        try await fileSystem.makeDirectory(at: basePath.appending(try RelativePath(validating: "Package/Sources/Sharing1")))
+        try await fileSystem.makeDirectory(at: basePath.appending(try RelativePath(validating: "Package/Sources/Sharing2")))
+
+        let project = try await subject.map(
+            package: "Package",
+            basePath: basePath,
+            packageInfos: [
+                "Package": .test(
+                    name: "Package",
+                    products: [
+                        .init(name: "Sharing", type: .library(.automatic), targets: ["Sharing"]),
+                    ],
+                    targets: [
+                        .test(
+                            name: "Sharing",
+                            dependencies: [
+                                .target(name: "Sharing1", condition: nil),
+                                .target(name: "Sharing2", condition: nil),
+                            ]
+                        ),
+                        .test(name: "Sharing1"),
+                        .test(name: "Sharing2"),
+                    ],
+                    platforms: [.ios],
+                    cLanguageStandard: nil,
+                    cxxLanguageStandard: nil,
+                    swiftLanguageVersions: nil
+                ),
+            ]
+        )
+        let sharing1Target = try #require(project?.targets.first(where: { $0.name == "Sharing1" }))
+        let sharing2Target = try #require(project?.targets.first(where: { $0.name == "Sharing2" }))
+        #expect(sharing1Target.productName == "Sharing1")
+        #expect(sharing2Target.productName == "Sharing2")
+    }
+
+    @Test(
+        .inTemporaryDirectory, .withMockedSwiftVersionProvider
+    ) func map_whenMultiTargetProduct_keepsOwnTargetNameAsProductName() async throws {
+        let basePath = try #require(FileSystem.temporaryTestDirectory)
+        try await fileSystem.makeDirectory(at: basePath.appending(try RelativePath(validating: "Package/Sources/FooCore")))
+        try await fileSystem.makeDirectory(at: basePath.appending(try RelativePath(validating: "Package/Sources/FooUI")))
+
+        let project = try await subject.map(
+            package: "Package",
+            basePath: basePath,
+            packageInfos: [
+                "Package": .test(
+                    name: "Package",
+                    products: [
+                        .init(name: "Foo", type: .library(.automatic), targets: ["FooCore", "FooUI"]),
+                    ],
+                    targets: [
+                        .test(name: "FooCore"),
+                        .test(name: "FooUI"),
+                    ],
+                    platforms: [.ios],
+                    cLanguageStandard: nil,
+                    cxxLanguageStandard: nil,
+                    swiftLanguageVersions: nil
+                ),
+            ]
+        )
+        let fooCoreTarget = try #require(project?.targets.first(where: { $0.name == "FooCore" }))
+        let fooUITarget = try #require(project?.targets.first(where: { $0.name == "FooUI" }))
+        #expect(fooCoreTarget.productName == "FooCore")
+        #expect(fooUITarget.productName == "FooUI")
+    }
 }
 
 private func defaultSpmResources(_ target: String, customPath: String? = nil) -> ProjectDescription.ResourceFileElements {
