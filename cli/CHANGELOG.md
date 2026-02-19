@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 
 ### 🐛 Bug Fixes
 
+* restore SRCROOT path resolution for cached target settings by [@fortmarek](https://github.com/fortmarek) in [#9531](https://github.com/tuist/tuist/pull/9531)
+* respect custom server url by [@yusufozgul](https://github.com/yusufozgul) in [#9524](https://github.com/tuist/tuist/pull/9524)
 * include buildable folder resources in Target.containsResources by [@hiltonc](https://github.com/hiltonc) in [#9290](https://github.com/tuist/tuist/pull/9290)
 * use product name as module name for SPM wrapper targets by [@pepicrft](https://github.com/pepicrft) in [#9370](https://github.com/tuist/tuist/pull/9370)
 
