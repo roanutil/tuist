@@ -1,7 +1,16 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-## What's Changed in 4.147.0<!-- RELEASE NOTES START -->
+## What's Changed in 4.148.2<!-- RELEASE NOTES START -->
+
+### 🐛 Bug Fixes
+
+* include buildable folder resources in Target.containsResources by [@hiltonc](https://github.com/hiltonc) in [#9290](https://github.com/tuist/tuist/pull/9290)
+* use product name as module name for SPM wrapper targets by [@pepicrft](https://github.com/pepicrft) in [#9370](https://github.com/tuist/tuist/pull/9370)
+
+**Full Changelog**: https://github.com/tuist/tuist/compare/4.148.1...4.148.2
+
+## What's Changed in 4.148.1<!-- RELEASE NOTES START -->
 
 ### ⛰️  Features
 
@@ -19,7 +28,7 @@ All notable changes to this project will be documented in this file.
 * resolve static ObjC xcframework search paths without Package.swift by [@pepicrft](https://github.com/pepicrft) in [#9440](https://github.com/tuist/tuist/pull/9440)
 * enable HTTP logging and server warnings on Linux by [@fortmarek](https://github.com/fortmarek) in [#9479](https://github.com/tuist/tuist/pull/9479)
 
-**Full Changelog**: https://github.com/tuist/tuist/compare/4.146.1...4.147.0
+**Full Changelog**: https://github.com/tuist/tuist/compare/4.146.1...4.148.1
 
 ## What's Changed in 4.146.1<!-- RELEASE NOTES START -->
 
