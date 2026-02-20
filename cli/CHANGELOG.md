@@ -1,6 +1,14 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## What's Changed in 4.150.0<!-- RELEASE NOTES START -->
+
+### ⛰️  Features
+
+* Add platformFilters for buildable folder exceptions by [@fortmarek](https://github.com/fortmarek) in [#9545](https://github.com/tuist/tuist/pull/9545)
+
+**Full Changelog**: https://github.com/tuist/tuist/compare/4.149.1...4.150.0
+
 ## What's Changed in 4.149.1<!-- RELEASE NOTES START -->
 
 ### 🐛 Bug Fixes
