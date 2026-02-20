@@ -1,7 +1,18 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
-## What's Changed in 4.148.2<!-- RELEASE NOTES START -->
+## What's Changed in 4.149.0<!-- RELEASE NOTES START -->
+
+### ⛰️  Features
+
+* Android APK previews with cross-platform share and run by [@fortmarek](https://github.com/fortmarek) in [#9509](https://github.com/tuist/tuist/pull/9509)
+### 🐛 Bug Fixes
+
+* Prioritize local packages over registry versions by [@fdiaz](https://github.com/fdiaz) in [#9540](https://github.com/tuist/tuist/pull/9540)
+
+**Full Changelog**: https://github.com/tuist/tuist/compare/4.148.4...4.149.0
+
+## What's Changed in 4.148.4<!-- RELEASE NOTES START -->
 
 ### 🐛 Bug Fixes
 
@@ -11,7 +22,7 @@ All notable changes to this project will be documented in this file.
 * include buildable folder resources in Target.containsResources by [@hiltonc](https://github.com/hiltonc) in [#9290](https://github.com/tuist/tuist/pull/9290)
 * use product name as module name for SPM wrapper targets by [@pepicrft](https://github.com/pepicrft) in [#9370](https://github.com/tuist/tuist/pull/9370)
 
-**Full Changelog**: https://github.com/tuist/tuist/compare/4.148.1...4.148.2
+**Full Changelog**: https://github.com/tuist/tuist/compare/4.148.1...4.148.4
 
 ## What's Changed in 4.148.1<!-- RELEASE NOTES START -->
 
