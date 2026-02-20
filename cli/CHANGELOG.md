@@ -1,6 +1,14 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## What's Changed in 4.149.1<!-- RELEASE NOTES START -->
+
+### 🐛 Bug Fixes
+
+* Use latest Gradle plugin version in init and add takeaways by [@fortmarek](https://github.com/fortmarek) in [#9543](https://github.com/tuist/tuist/pull/9543)
+
+**Full Changelog**: https://github.com/tuist/tuist/compare/4.149.0...4.149.1
+
 ## What's Changed in 4.149.0<!-- RELEASE NOTES START -->
 
 ### ⛰️  Features
