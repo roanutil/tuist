@@ -1,6 +1,14 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## What's Changed in 4.151.0<!-- RELEASE NOTES START -->
+
+### ⛰️  Features
+
+* expand glob patterns in buildable folder exclusions by [@InderKumarRathore](https://github.com/InderKumarRathore) in [#9552](https://github.com/tuist/tuist/pull/9552)
+
+**Full Changelog**: https://github.com/tuist/tuist/compare/4.150.1...4.151.0
+
 ## What's Changed in 4.150.1<!-- RELEASE NOTES START -->
 
 ### 🐛 Bug Fixes
