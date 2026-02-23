@@ -1,6 +1,19 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+## What's Changed in 4.150.1<!-- RELEASE NOTES START -->
+
+### 🐛 Bug Fixes
+
+* expanding folder to input inner files when used as input in foreign build phase script by [@scarayaa](https://github.com/scarayaa) in [#9556](https://github.com/tuist/tuist/pull/9556)
+* place precompiled dependencies from SPM build directory in frameworks group by [@JanC](https://github.com/JanC) in [#9555](https://github.com/tuist/tuist/pull/9555)
+
+## New Contributors
+* [@scarayaa](https://github.com/scarayaa) made their first contribution in [#9556](https://github.com/tuist/tuist/pull/9556)
+* [@JanC](https://github.com/JanC) made their first contribution in [#9555](https://github.com/tuist/tuist/pull/9555)
+
+**Full Changelog**: https://github.com/tuist/tuist/compare/4.150.0...4.150.1
+
 ## What's Changed in 4.150.0<!-- RELEASE NOTES START -->
 
 ### ⛰️  Features
