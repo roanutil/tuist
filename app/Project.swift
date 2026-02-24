@@ -112,8 +112,8 @@ let project = Project(
                     "SUPublicEDKey": "XUfguyGrLktmv6E4C/iqfw8p57HWKqx4mJ/hG4/lbMk=",
                     "SUFeedURL":
                         "https://raw.githubusercontent.com/tuist/tuist/main/app/appcast.xml",
-                    "CFBundleShortVersionString": "0.24.3",
-                    "CFBundleVersion": "3754",
+                    "CFBundleShortVersionString": "0.25.0",
+                    "CFBundleVersion": "3760",
                     "UILaunchStoryboardName": "LaunchScreen.storyboard",
                     "UISupportedInterfaceOrientations": [
                         "UIInterfaceOrientationPortrait",
