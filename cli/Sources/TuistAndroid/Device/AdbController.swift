@@ -27,6 +27,7 @@ public enum AdbControllerError: LocalizedError, Equatable {
 
 @Mockable
 public protocol AdbControlling: Sendable {
+    func isAdbAvailable() async -> Bool
     func findAvailableDevices() async throws -> [AndroidDevice]
     func installApp(at path: AbsolutePath, device: AndroidDevice) async throws
     func launchApp(packageName: String, device: AndroidDevice) async throws
@@ -47,12 +48,16 @@ public protocol AdbControlling: Sendable {
             self.commandRunner = commandRunner
         }
 
+        public func isAdbAvailable() async -> Bool {
+            (try? await resolveAdbPath()) != nil
+        }
+
         public func findAvailableDevices() async throws -> [AndroidDevice] {
             let adb = try await resolveAdbPath()
             let output: String
             do {
                 output = try await commandRunner
-                    .run(arguments: [adb, "devices", "-l"])
+                    .run(arguments: [adb.pathString, "devices", "-l"])
                     .concatenatedString()
             } catch {
                 throw AdbControllerError.adbNotFound
@@ -88,7 +93,7 @@ public protocol AdbControlling: Sendable {
             let adb = try await resolveAdbPath()
             do {
                 try await commandRunner
-                    .run(arguments: [adb, "-s", device.id, "install", "-r", path.pathString])
+                    .run(arguments: [adb.pathString, "-s", device.id, "install", "-r", path.pathString])
                     .awaitCompletion()
             } catch {
                 throw AdbControllerError.installFailed(device: device.id, reason: error.localizedDescription)
@@ -101,7 +106,7 @@ public protocol AdbControlling: Sendable {
             do {
                 output = try await commandRunner
                     .run(arguments: [
-                        adb, "-s", device.id, "shell",
+                        adb.pathString, "-s", device.id, "shell",
                         "cmd", "package", "resolve-activity", "--brief",
                         "-a", "android.intent.action.MAIN",
                         "-c", "android.intent.category.LAUNCHER",
@@ -128,7 +133,7 @@ public protocol AdbControlling: Sendable {
             do {
                 try await commandRunner
                     .run(arguments: [
-                        adb, "-s", device.id, "shell",
+                        adb.pathString, "-s", device.id, "shell",
                         "am", "start", "-n", activity,
                     ])
                     .awaitCompletion()
@@ -139,7 +144,8 @@ public protocol AdbControlling: Sendable {
 
         // MARK: - Private
 
-        private func resolveAdbPath() async throws -> String {
+        private func resolveAdbPath() async throws -> AbsolutePath {
+            let logger = Logger.current
             let variables = Environment.current.variables
             for envVar in ["ANDROID_HOME", "ANDROID_SDK_ROOT"] {
                 guard let value = variables[envVar], !value.isEmpty else { continue }
@@ -149,11 +155,28 @@ public protocol AdbControlling: Sendable {
                         .appending(components: ["platform-tools", "adb"])
                 } catch { continue }
                 if await (try? fileSystem.exists(adbPath)) == true {
-                    return adbPath.pathString
+                    logger.debug("Resolved adb path from \(envVar): \(adbPath.pathString)")
+                    return adbPath
                 }
             }
 
-            return "adb"
+            let homeDir = Environment.current.homeDirectory
+            let wellKnownPaths: [AbsolutePath] = [
+                homeDir.appending(components: ["Library", "Android", "sdk", "platform-tools", "adb"]),
+                homeDir.appending(
+                    components: [".local", "share", "mise", "installs", "android-sdk", "latest", "platform-tools", "adb"]
+                ),
+                try AbsolutePath(validating: "/opt/homebrew/bin/adb"),
+                try AbsolutePath(validating: "/usr/local/bin/adb"),
+            ]
+            for adbPath in wellKnownPaths {
+                if await (try? fileSystem.exists(adbPath)) == true {
+                    logger.debug("Resolved adb path: \(adbPath.pathString)")
+                    return adbPath
+                }
+            }
+
+            throw AdbControllerError.adbNotFound
         }
     }
 #endif
