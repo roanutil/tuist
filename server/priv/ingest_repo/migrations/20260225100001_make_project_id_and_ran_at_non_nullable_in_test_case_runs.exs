@@ -1,7 +1,7 @@
 defmodule Tuist.IngestRepo.Migrations.MakeProjectIdAndRanAtNonNullableInTestCaseRuns do
   @moduledoc """
   Drops projections that reference `project_id` and `ran_at` so that
-  subsequent migrations can change the column types.
+  the columns can be changed to non-nullable manually.
 
   Split into its own migration so that on retry the DROP PROJECTIONs
   are not re-queued as duplicate mutations.
